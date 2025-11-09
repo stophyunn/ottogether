@@ -152,19 +152,14 @@ fun AppNavHost(
 
                 // 현재 PaymentInfoScreen 시그니처에 맞춰 titleText 없이 호출
                 PaymentInfoScreen(
-                    ottName = ottName,
-                    plan = plan,
-                    logoRes = logoRes,
+                    ottName = "넷플릭스",
+                    plan = "프리미엄",
+                    logoRes = R.drawable.ic_logo_netflix,
                     onBack = { navController.popBackStack() },
-                    onRegisterShareMine = {
-                        navController.navigate(AppRoute.MySubscriptions.path) {
-                            popUpTo(AppRoute.Home.path) { inclusive = false }
-                        }
-                    },
-                    onRegisterAsMember = {
-                        navController.navigate(AppRoute.MySubscriptions.path) {
-                            popUpTo(AppRoute.Home.path) { inclusive = false }
-                        }
+                    onPayDone = {
+                        // 결제완료 후 이동 처리 (예: 뒤로가기 또는 완료 화면)
+                        navController.popBackStack()
+                        // 또는 navController.navigate("done")
                     }
                 )
             }

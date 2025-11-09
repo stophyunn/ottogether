@@ -8,33 +8,35 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,23 +46,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.example.ottogether.R
 import java.util.Calendar
 import java.util.Locale
 
-/* -------------------------
- *  간단 날짜 구조체 (java.time 대체)
- * ------------------------- */
-data class SimpleDate(
-    val year: Int,
-    /** 1~12 */
-    val month: Int,
-    /** 1~31 */
-    val day: Int
-)
+data class SimpleDate(val year: Int, val month: Int, val day: Int)
 
 private fun today(): SimpleDate {
     val c = Calendar.getInstance()
@@ -74,16 +71,13 @@ private fun daysInMonth(year: Int, month: Int): Int {
     return c.getActualMaximum(Calendar.DAY_OF_MONTH)
 }
 
-/** 월요일=0 … 일요일=6 (Compose 그리드 정렬용) */
 private fun firstWeekdayIndex(year: Int, month: Int): Int {
     val c = Calendar.getInstance()
     c.set(Calendar.YEAR, year)
     c.set(Calendar.MONTH, month - 1)
     c.set(Calendar.DAY_OF_MONTH, 1)
-    // Calendar.DAY_OF_WEEK: 일=1, 월=2 … 토=7
     val idxSunStart = c.get(Calendar.DAY_OF_WEEK) - 1 // 0..6 (일=0)
-    // 월요일 시작으로 변환
-    return (idxSunStart + 6) % 7
+    return (idxSunStart + 6) % 7 // 월요일 시작
 }
 
 private fun prevMonth(year: Int, month: Int): Pair<Int, Int> =
@@ -92,174 +86,160 @@ private fun prevMonth(year: Int, month: Int): Pair<Int, Int> =
 private fun nextMonth(year: Int, month: Int): Pair<Int, Int> =
     if (month == 12) (year + 1) to 1 else year to (month + 1)
 
-private val MONTH_LABELS_FULL = arrayOf(
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
+private val MONTH_LABELS = arrayOf(
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
 )
 
-/* -------------------------
- *  화면
- * ------------------------- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
     onBack: () -> Unit = {},
-    /** 이벤트 표시: (year, month, day) -> 이모지/문자 */
-    events: Map<Triple<Int, Int, Int>, String> = emptyMap()
+    events: Map<Triple<Int, Int, Int>, Int> = emptyMap()
 ) {
     val t = remember { today() }
     var year by remember { mutableStateOf(t.year) }
     var month by remember { mutableStateOf(t.month) }
     var selected by remember { mutableStateOf(SimpleDate(t.year, t.month, t.day)) }
+    var showPicker by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = Color(0xFFF6F6FB),
         topBar = {
             TopAppBar(
-                title = { Text("캘린더") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "뒤로") } }
+                title = {
+                    Text(
+                        text = "캘린더",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF808080)
+                        )
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF6F6FB))
             )
         }
     ) { p ->
         Column(
             modifier = Modifier
                 .padding(p)
+                .fillMaxSize()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            MonthYearHeader(
-                year = year,
-                month = month,
-                onPrev = {
-                    val (y, m) = prevMonth(year, month)
-                    year = y; month = m
-                },
-                onNext = {
-                    val (y, m) = nextMonth(year, month)
-                    year = y; month = m
-                },
-                onPickMonth = { m -> month = m },
-                onPickYear = { y -> year = y }
-            )
+            Surface(
+                color = Color.White,
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 1.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp, horizontal = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    /** 월/년도 헤더 */
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        IconButton(onClick = {
+                            val (y, m) = prevMonth(year, month)
+                            year = y; month = m
+                        }) {
+                            Icon(Icons.Default.ChevronLeft, contentDescription = "이전달", tint = Color.Gray)
+                        }
 
-            WeekdayHeader()
-
-            DayGrid(
-                year = year,
-                month = month,
-                selected = selected,
-                events = events,
-                onSelect = { selected = it }
-            )
-        }
-    }
-}
-
-/* 헤더(월/년, 이전/다음, 드롭다운) */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MonthYearHeader(
-    year: Int,
-    month: Int,
-    onPrev: () -> Unit,
-    onNext: () -> Unit,
-    onPickMonth: (Int) -> Unit,
-    onPickYear: (Int) -> Unit
-) {
-    Surface(
-        tonalElevation = 1.dp,
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "${MONTH_LABELS_FULL[month - 1].uppercase(Locale.ENGLISH)} $year",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = onPrev) { Icon(Icons.Default.ChevronLeft, "이전달") }
-
-            // Month dropdown
-            var openMonth by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(expanded = openMonth, onExpandedChange = { openMonth = !openMonth }) {
-                AssistChip(
-                    onClick = { openMonth = true },
-                    label = { Text(MONTH_LABELS_FULL[month - 1].take(3)) },
-                    modifier = Modifier.menuAnchor()
-                )
-                ExposedDropdownMenu(expanded = openMonth, onDismissRequest = { openMonth = false }) {
-                    (1..12).forEach { m ->
-                        DropdownMenuItem(
-                            text = { Text(MONTH_LABELS_FULL[m - 1]) },
-                            onClick = { onPickMonth(m); openMonth = false }
+                        Text(
+                            text = "${MONTH_LABELS[month - 1].take(3).uppercase(Locale.ENGLISH)} $year",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp
+                            ),
+                            color = Color(0xFF222222),
+                            modifier = Modifier.clickable { showPicker = true }
                         )
+
+                        IconButton(onClick = {
+                            val (y, m) = nextMonth(year, month)
+                            year = y; month = m
+                        }) {
+                            Icon(Icons.Default.ChevronRight, contentDescription = "다음달", tint = Color.Gray)
+                        }
                     }
+
+                    Spacer(Modifier.height(12.dp))
+                    WeekHeader()
+                    Spacer(Modifier.height(4.dp))
+
+                    /** 날짜 그리드 */
+                    DayGrid(
+                        year = year,
+                        month = month,
+                        selected = selected,
+                        events = events,
+                        onSelect = { selected = it }
+                    )
                 }
             }
-            Spacer(Modifier.width(8.dp))
 
-            // Year dropdown (2021..2032 예시)
-            var openYear by remember { mutableStateOf(false) }
-            val years = (2021..2032).toList()
-            ExposedDropdownMenuBox(expanded = openYear, onExpandedChange = { openYear = !openYear }) {
-                AssistChip(
-                    onClick = { openYear = true },
-                    label = { Text("$year") },
-                    modifier = Modifier.menuAnchor()
+            if (showPicker) {
+                MonthYearPickerDialog(
+                    currentYear = year,
+                    currentMonth = month,
+                    onDismiss = { showPicker = false },
+                    onConfirm = { y, m ->
+                        year = y
+                        month = m
+                        showPicker = false
+                    }
                 )
-                ExposedDropdownMenu(expanded = openYear, onDismissRequest = { openYear = false }) {
-                    years.forEach { y ->
-                        DropdownMenuItem(text = { Text("$y") }, onClick = { onPickYear(y); openYear = false })
-                    }
-                }
             }
-
-            IconButton(onClick = onNext) { Icon(Icons.Default.ChevronRight, "다음달") }
         }
     }
 }
 
-/* 요일 헤더 (Mon..Sun) */
 @Composable
-private fun WeekdayHeader() {
-    val labels = listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
-    Row(Modifier.fillMaxWidth()) {
-        labels.forEach { w ->
+private fun WeekHeader() {
+    val weekLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        weekLabels.forEach {
             Text(
-                text = w,
+                text = it,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
-                color = Color.Gray,
-                style = MaterialTheme.typography.labelLarge
+                color = Color(0xFF808080),
+                fontSize = 13.sp
             )
         }
     }
 }
 
-/* 날짜 그리드 6행(42칸) 고정 */
 @Composable
 private fun DayGrid(
     year: Int,
     month: Int,
     selected: SimpleDate,
-    events: Map<Triple<Int, Int, Int>, String>,
+    events: Map<Triple<Int, Int, Int>, Int>,
     onSelect: (SimpleDate) -> Unit
 ) {
-    val firstIdx = firstWeekdayIndex(year, month)       // 0..6
+    val firstIdx = firstWeekdayIndex(year, month)
     val dim = daysInMonth(year, month)
     val (py, pm) = prevMonth(year, month)
     val (ny, nm) = nextMonth(year, month)
     val prevDim = daysInMonth(py, pm)
 
-    // 42칸 셀 날짜 구성
     val cells = buildList {
-        // 앞부분: 이전달 말일에서 채우기
         for (i in firstIdx downTo 1) add(SimpleDate(py, pm, prevDim - i + 1))
-        // 이번달
         for (d in 1..dim) add(SimpleDate(year, month, d))
-        // 뒷부분: 다음달
         val remain = 42 - size
         for (d in 1..remain) add(SimpleDate(ny, nm, d))
     }
@@ -274,37 +254,36 @@ private fun DayGrid(
         items(cells) { date ->
             val inMonth = (date.month == month && date.year == year)
             val isSelected = (date == selected)
-            val dayTextColor =
-                if (!inMonth) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                else MaterialTheme.colorScheme.onSurface
+            val dayColor = if (!inMonth) Color.LightGray else Color(0xFF222222)
 
             Box(
                 modifier = Modifier
-                    .padding(4.dp)
+                    .padding(2.dp)
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp))
                     .clickable { onSelect(date) },
                 contentAlignment = Alignment.Center
             ) {
-                if (isSelected) {
+                if (isSelected && inMonth) {
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(36.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                            .background(Color(0xFFFF7A2F).copy(alpha = 0.25f))
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "${date.day}",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                        ),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else dayTextColor,
+                        color = if (isSelected) Color(0xFFFF7A2F) else dayColor,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         textAlign = TextAlign.Center
                     )
-                    events[Triple(date.year, date.month, date.day)]?.let { em ->
-                        Text(em, textAlign = TextAlign.Center)
+                    events[Triple(date.year, date.month, date.day)]?.let { res ->
+                        Icon(
+                            painter = painterResource(id = res),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
             }
@@ -312,51 +291,147 @@ private fun DayGrid(
     }
 }
 
-/* -------------------------
- *  Preview
- * ------------------------- */
-
-@Preview(showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
-private fun CalendarScreenPreview() {
-    // 2025-10 기준, 13일 선택 + 22/29 이벤트
-    val initYear = 2025
-    val initMonth = 10
-    val sampleEvents = mapOf(
-        Triple(2025, 10, 22) to "🕊️",
-        Triple(2025, 10, 29) to "🅽"
+fun MonthYearPickerDialog(
+    currentYear: Int,
+    currentMonth: Int,
+    yearRange: IntRange = 2021..2032,
+    onDismiss: () -> Unit,
+    onConfirm: (year: Int, month: Int) -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        MonthYearPickerDialogContent(
+            currentYear = currentYear,
+            currentMonth = currentMonth,
+            yearRange = yearRange,
+            onDismiss = onDismiss,
+            onConfirm = onConfirm
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 390, heightDp = 800)
+@Composable
+fun CalendarScreenPreview() {
+    CalendarScreen(
+        events = mapOf(
+            Triple(2025, 10, 22) to R.drawable.ic_logo_coupang,
+            Triple(2025, 10, 31) to R.drawable.ic_logo_netflix
+        )
     )
+}
 
-    var year by remember { mutableStateOf(initYear) }
-    var month by remember { mutableStateOf(initMonth) }
-    var selected by remember { mutableStateOf(SimpleDate(initYear, initMonth, 13)) }
-
+@Preview(showBackground = true, widthDp = 360, heightDp = 640, name = "Month/Year Picker – Preview (No Dialog)")
+@Composable
+fun MonthYearPickerDialogContentPreview() {
     MaterialTheme {
-        Scaffold(bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = true, onClick = {}, icon = { Text("📅") }, label = { Text("캘린더") }
-                )
+        Surface(shape = RoundedCornerShape(12.dp), color = Color.White) {
+            MonthYearPickerDialogContent(
+                currentYear = 2027,
+                currentMonth = 10,
+                onDismiss = {},
+                onConfirm = { _, _ -> }
+            )
+        }
+    }
+}
+@Composable
+private fun MonthYearPickerDialogContent(
+    currentYear: Int,
+    currentMonth: Int,
+    yearRange: IntRange = 2021..2032,
+    onDismiss: () -> Unit,
+    onConfirm: (Int, Int) -> Unit
+) {
+    val months = remember {
+        listOf(
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        )
+    }
+    var selYear by remember { mutableStateOf(currentYear) }
+    var selMonth by remember { mutableStateOf(currentMonth) }
+
+    val monthState = rememberLazyListState(initialFirstVisibleItemIndex = (currentMonth - 1).coerceAtLeast(0))
+    val yearIndex = yearRange.indexOf(currentYear).coerceAtLeast(0)
+    val yearState = rememberLazyListState(initialFirstVisibleItemIndex = yearIndex)
+
+    Surface(shape = RoundedCornerShape(12.dp), color = Color.White) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                "Select month & year",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 320.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                LazyColumn(
+                    state = monthState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFFF6F6FB))
+                ) {
+                    items(12) { i ->
+                        val idx = i + 1
+                        val selected = (idx == selMonth)
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { selMonth = idx }
+                                .background(if (selected) Color(0xFFFF7A2F) else Color.Transparent)
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                months[i],
+                                color = if (selected) Color.White else Color.Black
+                            )
+                        }
+                    }
+                }
+
+                LazyColumn(
+                    state = yearState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFFF6F6FB))
+                ) {
+                    items(yearRange.count()) { i ->
+                        val y = yearRange.first + i
+                        val selected = (y == selYear)
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { selYear = y }
+                                .background(if (selected) Color(0xFFFF7A2F) else Color.Transparent)
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                y.toString(),
+                                color = if (selected) Color.White else Color.Black
+                            )
+                        }
+                    }
+                }
             }
-        }) { padding ->
-            Column(Modifier.padding(padding).padding(16.dp)) {
-                MonthYearHeader(
-                    year = year,
-                    month = month,
-                    onPrev = { val p = prevMonth(year, month); year = p.first; month = p.second },
-                    onNext = { val n = nextMonth(year, month); year = n.first; month = n.second },
-                    onPickMonth = { m -> month = m },
-                    onPickYear = { y -> year = y }
-                )
-                Spacer(Modifier.height(12.dp))
-                WeekdayHeader()
-                DayGrid(
-                    year = year,
-                    month = month,
-                    selected = selected,
-                    events = sampleEvents,
-                    onSelect = { selected = it }
-                )
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onDismiss) { Text("취소") }
+                Spacer(Modifier.width(8.dp))
+                Button(onClick = { onConfirm(selYear, selMonth) }) {
+                    Text("확인")
+                }
             }
         }
     }
