@@ -1,4 +1,5 @@
-package com.example.ottogether.feature.payment
+// ShareAccountScreen.kt
+package com.example.ottogether.feature.my.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

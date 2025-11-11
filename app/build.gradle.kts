@@ -30,11 +30,12 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -84,8 +85,13 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     // Hilt Compose (hiltViewModel)
     implementation(libs.hilt.navigation.compose)
+    coreLibraryDesugaring(libs.android.desugarJdkLibs)
 
     //지피티로 추가한것들
     implementation("androidx.compose.material3:material3")
     implementation("androidx.navigation:navigation-compose:2.8.3")
+
+}
+kotlin {
+    jvmToolchain(17)
 }
