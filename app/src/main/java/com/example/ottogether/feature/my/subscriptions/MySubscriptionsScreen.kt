@@ -6,14 +6,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -74,38 +77,54 @@ fun MySubscriptionsScreen(
         containerColor = BgSoft,
         topBar = { MySubTopBar(onBack) }
     ) { p ->
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Image(
-                painter = painterResource(R.drawable.myottsub),
-                contentDescription = "나의 OTT구독",
-                modifier = Modifier
-                    .offset(x = 38.dp, y = 90.dp)
-                    .width(183.dp)
-                    .height(58.dp),
-                contentScale = ContentScale.Fit
-            )
-            Divider(
-                color = Color(0xFFE7E8EE),
-                thickness = 1.dp,
-                modifier = Modifier
-                    .offset(x = 21.dp, y = 185.dp)
-                    .width(352.dp)
-            )
-            Column(
-                Modifier
-                    .padding(p)
-                    .padding(top = 130.dp) // Divider 아래 18dp 간격
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items.forEachIndexed { index, s ->
-                    SubscriptionCard(
-                        item = s,
-                        highlighted = index == 0 && s.status == "finish",
-                        onClick = { onItem(s) }
+        // ✅ 흐름 기반 배치: LazyColumn 하나로 모두 배치 (겹침 없음)
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(p), // 안전영역 패딩은 부모에서 한 번만
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // 헤더 이미지
+            item {
+                Box(Modifier.fillMaxWidth()) {
+                    Image(
+                        painter = painterResource(R.drawable.myottsub),
+                        contentDescription = "나의 OTT구독",
+                        modifier = Modifier
+                            .width(183.dp)
+                            .height(58.dp)
+                            .align(Alignment.CenterStart) // 왼쪽 정렬
+                            .padding(start = 22.dp, top = 8.dp), // 원하던 여백만 padding으로
+                        contentScale = ContentScale.Fit
                     )
                 }
             }
+
+            // 구분선
+            item {
+                Divider(
+                    color = Color(0xFFE7E8EE),
+                    thickness = 1.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 5.dp)
+                        .padding(top = 37.dp)
+                )
+            }
+
+            // 카드 리스트
+            items(items.size) { idx ->
+                val s = items[idx]
+                SubscriptionCard(
+                    item = s,
+                    highlighted = idx == 0 && s.status == "finish",
+                    onClick = { onItem(s) }
+                )
+            }
+
+            // 하단 여백(네비 제스처바와 겹치지 않게)
+            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 }
