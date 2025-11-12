@@ -1,3 +1,4 @@
+package com.example.ottogether.core.data
 
 import com.example.ottogether.R
 import com.example.ottogether.core.model.BillingInfo
@@ -7,8 +8,20 @@ import com.example.ottogether.core.model.Provider
 import com.example.ottogether.core.model.Subscription
 import com.example.ottogether.core.model.User
 import java.time.LocalDate
+import javax.inject.Inject
 
-class SeedData {
+/**
+ * 더미 데이터 모음. 앱의 모든 화면이 동일한 데이터를 바라보도록 한 곳에서 정의한다.
+ */
+class SeedData @Inject constructor() {
+
+    data class ProviderCatalog(
+        val provider: Provider,
+        val displayName: String,
+        val logoRes: Int,
+        val plans: List<Plan>
+    )
+
     val users = listOf(
         User(
             id = "u1",
@@ -17,17 +30,116 @@ class SeedData {
             phone = "010-2025-2025",
             profileImageRes = R.drawable.profile
         ),
-        User(id = "u2", name = "개졸린 무지")
+        User(id = "u2", name = "개졸린 무지"),
+        User(id = "u3", name = "베짱이 무지")
     )
 
-    val plans = listOf(
-        Plan(
-            id = "p1",
-            name = "프리미엄",
-            quality = "가장 좋음",
-            resolution = "4K + HDR",
-            maxScreens = 6,               // ✅ 이름 맞추기
-            monthlyPrice = Money(2500)    // ✅ 이름 맞추기
+    val catalogs = listOf(
+        ProviderCatalog(
+            provider = Provider.NETFLIX,
+            displayName = "넷플릭스",
+            logoRes = R.drawable.ic_logo_netflix,
+            plans = listOf(
+                Plan(
+                    id = "netflix-premium",
+                    name = "프리미엄",
+                    quality = "가장 좋음",
+                    resolution = "4K + HDR",
+                    maxScreens = 6,
+                    monthlyPrice = Money(17000)
+                ),
+                Plan(
+                    id = "netflix-standard",
+                    name = "스탠다드",
+                    quality = "좋음",
+                    resolution = "1080p",
+                    maxScreens = 4,
+                    monthlyPrice = Money(13500)
+                ),
+                Plan(
+                    id = "netflix-basic",
+                    name = "베이식",
+                    quality = "보통",
+                    resolution = "720p",
+                    maxScreens = 2,
+                    monthlyPrice = Money(9500)
+                )
+            )
+        ),
+        ProviderCatalog(
+            provider = Provider.COUPANG,
+            displayName = "쿠팡플레이",
+            logoRes = R.drawable.ic_logo_coupang,
+            plans = listOf(
+                Plan(
+                    id = "coupang-wow",
+                    name = "와우 멤버십",
+                    quality = "Full HD",
+                    resolution = "1080p",
+                    maxScreens = 5,
+                    monthlyPrice = Money(4990)
+                )
+            )
+        ),
+        ProviderCatalog(
+            provider = Provider.DISNEY,
+            displayName = "디즈니플러스",
+            logoRes = R.drawable.ic_logo_disney,
+            plans = listOf(
+                Plan(
+                    id = "disney-standard",
+                    name = "스탠다드",
+                    quality = "최대 4K",
+                    resolution = "4K",
+                    maxScreens = 4,
+                    monthlyPrice = Money(9900)
+                )
+            )
+        ),
+        ProviderCatalog(
+            provider = Provider.TVING,
+            displayName = "티빙",
+            logoRes = R.drawable.ic_logo_tving,
+            plans = listOf(
+                Plan(
+                    id = "tving-premium",
+                    name = "프리미엄",
+                    quality = "Ultra HD",
+                    resolution = "4K",
+                    maxScreens = 4,
+                    monthlyPrice = Money(13900)
+                )
+            )
+        ),
+        ProviderCatalog(
+            provider = Provider.WAVVE,
+            displayName = "웨이브",
+            logoRes = R.drawable.ic_logo_wavve,
+            plans = listOf(
+                Plan(
+                    id = "wavve-standard",
+                    name = "스탠다드",
+                    quality = "Full HD",
+                    resolution = "1080p",
+                    maxScreens = 4,
+                    monthlyPrice = Money(10900)
+                )
+            )
+        ),
+        ProviderCatalog(
+            provider = Provider.WATCHA,
+            displayName = "왓챠",
+            logoRes = R.drawable.ic_logo_watcha,
+            plans = listOf(
+                Plan(
+                    id = "watcha-premium",
+                    name = "프리미엄",
+                    quality = "Full HD",
+                    resolution = "1080p",
+                    maxScreens = 4,
+                    monthlyPrice = Money(12900)
+                )
+            )
         )
     )
 
@@ -35,16 +147,22 @@ class SeedData {
         Subscription(
             id = "s1",
             provider = Provider.NETFLIX,
-            plan = plans[0],
-            ownerUserId = "u1",
-            members = listOf("u2"),
+            plan = plan(Provider.NETFLIX, "netflix-premium"),
+            ownerUserId = users[0].id,
+            members = listOf(users[1].id, users[2].id),
             billing = BillingInfo(
                 accountMasked = "국민은행 00000-0000-0000",
-                loginId = "song2025@sookmyung.ac.kr",
+                loginId = users[0].email,
                 passwordMasked = "********",
                 cycleDay = 10,
-                nextBillingDate = LocalDate.of(2025, 11, 23) // ✅ LocalDate로
+                nextBillingDate = LocalDate.of(2025, 11, 23)
             )
         )
     )
+
+    fun catalog(provider: Provider): ProviderCatalog =
+        catalogs.first { it.provider == provider }
+
+    fun plan(provider: Provider, planId: String): Plan =
+        catalog(provider).plans.first { it.id == planId }
 }
