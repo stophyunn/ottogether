@@ -2,6 +2,7 @@
 import com.example.ottogether.R
 import com.example.ottogether.core.model.BillingInfo
 import com.example.ottogether.core.model.Money
+import com.example.ottogether.core.model.Party
 import com.example.ottogether.core.model.Plan
 import com.example.ottogether.core.model.Provider
 import com.example.ottogether.core.model.Subscription
@@ -45,6 +46,26 @@ class SeedData {
                 cycleDay = 10,
                 nextBillingDate = LocalDate.of(2025, 11, 23) // ✅ LocalDate로
             )
+        )
+    )
+    val dummyParties = listOf(
+        Party(
+            id = "p1",
+            providerId = "netflix",
+            planId = "premium",
+            ownerId = "u1",
+            members = listOf("u1", "u2", "u3"),
+            nextBillingDate = LocalDate.now().plusDays(3),
+            inviteCode = "ABCD12"
+        ),
+        Party(
+            id = "p2",
+            providerId = "tving",
+            planId = "standard",
+            ownerId = "u1",
+            members = listOf("u1", "u2"),
+            nextBillingDate = LocalDate.now().plusDays(10),
+            inviteCode = "TVING99"
         )
     )
 }
