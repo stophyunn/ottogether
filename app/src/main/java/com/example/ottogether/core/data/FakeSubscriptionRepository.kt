@@ -1,10 +1,11 @@
 package com.example.ottogether.core.data
 
-import SeedData
 import com.example.ottogether.core.model.Subscription
 
-class FakeSubscriptionRepository(
-    private val seed: SeedData = SeedData()
+import javax.inject.Inject
+
+class FakeSubscriptionRepository @Inject constructor(
+    private val seed: SeedData
 ) : SubscriptionRepository {
 
     // 자바 8 API 없이 코틀린 표준으로만

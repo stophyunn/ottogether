@@ -95,7 +95,9 @@ private val MONTH_LABELS = arrayOf(
 @Composable
 fun CalendarScreen(
     onBack: () -> Unit = {},
-    events: Map<Triple<Int, Int, Int>, Int> = emptyMap()
+    events: Map<Triple<Int, Int, Int>, Int> = emptyMap(),
+    onDateSelected: (SimpleDate) -> Unit = {},
+    bottomBar: @Composable () -> Unit = {}
 ) {
     val t = remember { today() }
     var year by remember { mutableStateOf(t.year) }
@@ -124,7 +126,8 @@ fun CalendarScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF6F6FB))
             )
-        }
+        },
+        bottomBar = bottomBar
     ) { p ->
         Column(
             modifier = Modifier
@@ -186,7 +189,10 @@ fun CalendarScreen(
                         month = month,
                         selected = selected,
                         events = events,
-                        onSelect = { selected = it }
+                        onSelect = {
+                            selected = it
+                            onDateSelected(it)
+                        }
                     )
                 }
             }

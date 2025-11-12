@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,24 +33,29 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
-import com.example.ottogether.ui.theme.PreviewContainer
+import com.example.ottogether.core.model.Subscription
+import com.example.ottogether.core.ui.logoFor
 
-private val BgSoft   = Color(0xFFF6F6FB)
-private val Orange   = Color(0xFFFF7A2F)
+private val BgSoft = Color(0xFFF6F6FB)
+private val Orange = Color(0xFFFF7A2F)
 private val GrayText = Color(0xFF6F7682)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyProfileScreen(
+    userName: String?,
+    email: String?,
+    phone: String?,
+    subscriptions: List<Subscription>,
+    providerName: (Subscription) -> String = { it.provider.name },
     onBack: () -> Unit = {},
     onMyAccount: () -> Unit = {},
     onSubscriptions: () -> Unit = {},
-    onSubscriptionItem: (String) -> Unit = {},
+    onSubscriptionItem: (Subscription) -> Unit = {},
     bottomBar: @Composable () -> Unit = {}
 ) {
     Scaffold(
@@ -77,15 +81,14 @@ fun MyProfileScreen(
             )
         },
         bottomBar = bottomBar
-    ) { p ->
+    ) { padding ->
         Column(
             modifier = Modifier
-                .padding(p)
+                .padding(padding)
                 .padding(horizontal = 16.dp)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            /** ✅ 상단 프로필 영역 (AppCard 사용 X) */
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -101,9 +104,8 @@ fun MyProfileScreen(
                         .background(Color(0xFFEDEFF3))
                 )
                 Spacer(Modifier.width(16.dp))
-                Column {
-                    Text("졸린 무지 님", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
-                    Spacer(Modifier.height(4.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(userName ?: "로그인이 필요해요", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
                     Text(
                         "내 계정 >",
                         color = GrayText,
@@ -112,61 +114,66 @@ fun MyProfileScreen(
                 }
             }
 
-//            Spacer(Modifier.height(5.dp))
             Divider(color = Color(0xFFE7E8EE), thickness = 1.dp)
-//            Spacer(Modifier.height(5.dp))
 
-            /** ✅ 나의 OTT 구독 카드 (실선 제거) */
             AppCard {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    SubscriptionsSectionHeader(onClick = onSubscriptions)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onSubscriptions),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("나의 OTT구독", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_pre),
+                            contentDescription = "더보기",
+                            tint = GrayText,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
 
-                    SubscriptionRow(
-                        logoRes = R.drawable.ic_logo_netflix,
-                        title = "넷플릭스 | 프리미엄",
-                        dday = "D - 20",
-                        onClick = { onSubscriptionItem("넷플릭스") }
-                    )
+                    subscriptions.take(3).forEach { sub ->
+                        SubscriptionRow(
+                            logoRes = logoFor(sub.provider.name),
+                            title = "${providerName(sub)} | ${sub.plan.name}",
+                            dday = "D - ${sub.billing.cycleDay}",
+                            onClick = { onSubscriptionItem(sub) }
+                        )
+                    }
 
-                    SubscriptionRow(
-                        logoRes = R.drawable.ic_logo_coupang,
-                        title = "쿠팡플레이",
-                        dday = "D - 11",
-                        onClick = { onSubscriptionItem("쿠팡플레이") }
-                    )
+                    if (subscriptions.isEmpty()) {
+                        Text(
+                            "구독 정보가 없습니다",
+                            color = GrayText,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Surface(
+                color = Color.White,
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 1.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    InfoRow(label = "이메일", value = email ?: "-")
+                    InfoRow(label = "휴대폰 번호", value = phone ?: "-")
+                }
+            }
         }
     }
 }
 
-/** 섹션 헤더 */
-@Composable
-private fun SubscriptionsSectionHeader(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 5.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text("나의 OTT구독", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Icon(
-            painter = painterResource(id = R.drawable.ic_pre),
-            contentDescription = "더보기",
-            tint = GrayText,
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
-
-/** 구독 아이템 (실선 없음) */
 @Composable
 private fun SubscriptionRow(
     logoRes: Int,
@@ -194,20 +201,24 @@ private fun SubscriptionRow(
     }
 }
 
-@Preview(showBackground = true, widthDp = 393, heightDp = 852)
 @Composable
-private fun MyProfilePreview() {
-    PreviewContainer {
-        MyProfileScreen(
-            bottomBar = {
-                Surface(color = Color(0xFFF8F8FB)) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                    )
-                }
-            }
+private fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = GrayText,
+                fontWeight = FontWeight.Medium
+            ),
+            modifier = Modifier.width(84.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFF1E1E1E), fontSize = 13.sp)
         )
     }
 }
