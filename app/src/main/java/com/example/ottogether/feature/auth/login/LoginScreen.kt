@@ -1,5 +1,6 @@
 package com.example.ottogether.feature.auth.login
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +21,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ottogether.R
+import com.example.ottogether.core.model.AuthResult
 
 private val BrandOrange = Color(0xFFFF7A2F)
 private val GrayText    = Color(0xFF6F7682)
@@ -40,8 +46,15 @@ fun LoginScreen(
     onSignupClick: () -> Unit = {},
     onFindEmailClick: () -> Unit = {},
     onFindPasswordClick: () -> Unit = {},
-    onLoginClick: () -> Unit = {},
+    onLogin: (String, String) -> AuthResult = { _, _ -> AuthResult(false) },
+    onLoginWithTestAccount: () -> AuthResult = { AuthResult(false) },
+    onLoginSuccess: () -> Unit = {},
 ) {
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var helper by rememberSaveable { mutableStateOf<String?>(null) }
+    val canSubmit = email.isNotBlank() && password.isNotBlank()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -114,8 +127,8 @@ fun LoginScreen(
 
                         // 입력 필드들
                         OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
+                            value = email,
+                            onValueChange = { email = it },
                             placeholder = { Text("ottogether @ gmail.com") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -128,14 +141,22 @@ fun LoginScreen(
                             fontSize = 13.sp
                         )
                         OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
+                            value = password,
+                            onValueChange = { password = it },
                             placeholder = { Text("Password") },
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp)
                         )
+
+                        helper?.takeIf { it.isNotBlank() }?.let {
+                            Text(
+                                text = it,
+                                color = Color(0xFFD32F2F),
+                                fontSize = 12.sp
+                            )
+                        }
 
                         // 우측 하단 링크
                         Row(
@@ -168,7 +189,16 @@ fun LoginScreen(
                         color = Color.Transparent
                     ) {
                         Button(
-                            onClick = onLoginClick,
+                            onClick = {
+                                val result = onLogin(email.trim(), password)
+                                if (result.success) {
+                                    helper = null
+                                    onLoginSuccess()
+                                } else {
+                                    helper = result.message ?: "로그인에 실패했어요"
+                                }
+                            },
+                            enabled = canSubmit,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
@@ -180,6 +210,36 @@ fun LoginScreen(
                         ) {
                             Text("log in", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            val result = onLoginWithTestAccount()
+                            if (result.success) {
+                                helper = null
+                                onLoginSuccess()
+                            } else {
+                                helper = result.message ?: "테스트 계정으로 로그인할 수 없어요"
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = BrandOrange
+                        ),
+                        border = BorderStroke(1.dp, BrandOrange)
+                    ) {
+                        Text(
+                            text = "테스트 계정으로 로그인",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandOrange
+                        )
                     }
                 }
             }

@@ -1,10 +1,12 @@
 package com.example.ottogether.core.data
 
-import SeedData
 import com.example.ottogether.core.model.Subscription
+import java.time.LocalDate
 
-class FakeSubscriptionRepository(
-    private val seed: SeedData = SeedData()
+import javax.inject.Inject
+
+class FakeSubscriptionRepository @Inject constructor(
+    private val seed: SeedData
 ) : SubscriptionRepository {
 
     // 자바 8 API 없이 코틀린 표준으로만
@@ -22,5 +24,15 @@ class FakeSubscriptionRepository(
     override suspend fun leaveSubscription(id: String, userId: String) {
         val s = subs[id] ?: return
         subs[id] = s.copy(members = s.members.filterNot { it == userId })
+    }
+
+    override suspend fun updateNextBillingDate(id: String, nextDate: LocalDate) {
+        val existing = subs[id] ?: return
+        subs[id] = existing.copy(
+            billing = existing.billing.copy(
+                cycleDay = nextDate.dayOfMonth,
+                nextBillingDate = nextDate
+            )
+        )
     }
 }
