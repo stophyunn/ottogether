@@ -51,6 +51,9 @@ private val TextSub = Color(0xFF6F7682)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountScreen(
+    userName: String? = null,
+    email: String? = null,
+    phone: String? = null,
     onBack: () -> Unit = {},
     onLogout: () -> Unit = {},
     onWithdrawConfirmed: () -> Unit = {},
@@ -106,7 +109,7 @@ fun AccountScreen(
 
             // 이름
             Text(
-                text = "졸린 무지 님",
+                text = userName?.let { "$it 님" } ?: "로그인이 필요해요",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF222222)
@@ -130,8 +133,8 @@ fun AccountScreen(
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
-                        InfoRow(label = "이메일", value = "song2025@sookmyung.ac.kr")
-                        InfoRow(label = "휴대폰 번호", value = "010-2025-2025")
+                        InfoRow(label = "이메일", value = email ?: "-")
+                        InfoRow(label = "휴대폰 번호", value = phone ?: "-")
                         InfoRow(label = "계좌번호", value = "국민은행 00000-0000-0000")
                     }
                 }
