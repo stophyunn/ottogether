@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +63,10 @@ import com.example.ottogether.core.designsystem.AppCard
 import com.example.ottogether.core.model.Money
 import com.example.ottogether.core.model.Plan
 import com.example.ottogether.core.ui.MembershipSpecSummary
+import com.example.ottogether.core.util.toEpochMillis
+import com.example.ottogether.core.util.toLocalDate
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 /* ---------- 토큰(이 파일에서만 사용) ---------- */
 private val BgSoft   = Color(0xFFF6F6FB)
@@ -76,13 +83,16 @@ fun ShareAccountScreen(
     plan: Plan,
     logoRes: Int,
     onBack: () -> Unit = {},
-    onRegisterPartyMatch: () -> Unit = {}
+    onRegisterPartyMatch: (ShareAccountForm) -> Unit = {}
 ) {
     var loginId by rememberSaveable { mutableStateOf("song2025@sookmyung.ac.kr") }
     var password by rememberSaveable { mutableStateOf("ottogether2024") }
     var account by rememberSaveable { mutableStateOf("국민은행 2020-2020-2020202") }
     var editingField by remember { mutableStateOf<EditableField?>(null) }
     var editingValue by remember { mutableStateOf("") }
+    var billingDate by remember { mutableStateOf(LocalDate.now().plusDays(3)) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val formatter = remember { DateTimeFormatter.ofPattern("MM / dd") }
 
     Scaffold(
         containerColor = BgSoft,
@@ -126,7 +136,16 @@ fun ShareAccountScreen(
 
                     // 패널 위에 올라가는 버튼
                     Button(
-                        onClick = onRegisterPartyMatch,
+                        onClick = {
+                            onRegisterPartyMatch(
+                                ShareAccountForm(
+                                    loginId = loginId,
+                                    password = password,
+                                    account = account,
+                                    firstBillingDate = billingDate
+                                )
+                            )
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -137,7 +156,7 @@ fun ShareAccountScreen(
                         )
                     ) {
                         Text(
-                            "파티매칭 등록하기",
+                            "파티장으로 파티매칭 등록하기",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp   // ✅ 폰트 크기 추가
                         )
@@ -220,12 +239,14 @@ fun ShareAccountScreen(
                         DateCell(
                             modifier = Modifier.weight(1f),
                             label = "결제일",
-                            value = "10 / 23"
+                            value = formatter.format(billingDate),
+                            onClick = { showDatePicker = true }
                         )
                         DateCell(
                             modifier = Modifier.weight(1f),
                             label = "다음 결제일",
-                            value = "11 / 23"
+                            value = formatter.format(billingDate.plusMonths(1)),
+                            onClick = { showDatePicker = true }
                         )
                     }
                 }
@@ -256,6 +277,37 @@ fun ShareAccountScreen(
                 editingField = null
             }
         )
+    }
+
+    if (showDatePicker) {
+        val pickerState = rememberDatePickerState(initialSelectedDateMillis = billingDate.toEpochMillis())
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        pickerState.selectedDateMillis?.let {
+                            billingDate = it.toLocalDate()
+                        }
+                        showDatePicker = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Orange,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("확정", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("취소", color = TextGray)
+                }
+            }
+        ) {
+            DatePicker(state = pickerState)
+        }
     }
 }
 
@@ -382,6 +434,13 @@ private fun maskPassword(password: String): String {
 
 private enum class EditableField { Login, Password, Account }
 
+data class ShareAccountForm(
+    val loginId: String,
+    val password: String,
+    val account: String,
+    val firstBillingDate: LocalDate
+)
+
 
 @Composable
 private fun SmallGhostText(text: String) {
@@ -394,11 +453,17 @@ private fun SmallGhostText(text: String) {
 }
 
 @Composable
-private fun DateCell(modifier: Modifier = Modifier, label: String, value: String) {
+private fun DateCell(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    onClick: (() -> Unit)? = null
+) {
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White),
+            .background(Color.White)
+            .clickable(enabled = onClick != null) { onClick?.invoke() },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(label, color = TextGray, modifier = Modifier.padding(bottom = 6.dp))

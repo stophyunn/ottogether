@@ -144,7 +144,6 @@ fun AppNavHost(
                 onSubscriptionItem = { sub ->
                     navController.navigate(Route.SubscriptionDetail.path(sub.id))
                 },
-                onChangeProfileImage = sessionViewModel::cycleProfileImage,
                 bottomBar = { MainBottomBar(navController, currentRoute) }
             )
         }
@@ -154,7 +153,13 @@ fun AppNavHost(
                 userName = sessionState.currentUser?.name,
                 email = sessionState.currentUser?.email,
                 phone = sessionState.currentUser?.phone,
+                password = sessionState.currentUser?.password,
+                profileImageRes = sessionState.currentUser?.profileImageRes,
                 onBack = { navController.popBackStack() },
+                onChangeProfileImage = sessionViewModel::cycleProfileImage,
+                onUpdateEmail = sessionViewModel::updateCurrentUserEmail,
+                onUpdatePhone = sessionViewModel::updateCurrentUserPhone,
+                onUpdatePassword = sessionViewModel::updateCurrentUserPassword,
                 onLogout = {
                     sessionViewModel.logout()
                     navController.navigate(Route.Login.path) {
@@ -233,7 +238,19 @@ fun AppNavHost(
                     plan = plan,
                     logoRes = catalog.logoRes,
                     onBack = { navController.popBackStack() },
-                    onRegisterPartyMatch = { navController.navigate(Route.Account.path) }
+                    onRegisterPartyMatch = { form ->
+                        sessionViewModel.hostNewSubscription(
+                            provider = catalog.provider,
+                            plan = plan,
+                            loginId = form.loginId,
+                            password = form.password,
+                            account = form.account,
+                            firstBillingDate = form.firstBillingDate
+                        )
+                        navController.navigate(Route.MySubscriptions.path) {
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
         }

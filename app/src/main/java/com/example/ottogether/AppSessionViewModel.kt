@@ -8,6 +8,8 @@ import com.example.ottogether.core.data.SeedData
 import com.example.ottogether.core.data.SubscriptionRepository
 import com.example.ottogether.core.data.UserRepository
 import com.example.ottogether.core.model.AuthResult
+import com.example.ottogether.core.model.Plan
+import com.example.ottogether.core.model.Provider
 import com.example.ottogether.core.model.Subscription
 import com.example.ottogether.core.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -154,6 +156,30 @@ class AppSessionViewModel @Inject constructor(
         }
     }
 
+    fun hostNewSubscription(
+        provider: Provider,
+        plan: Plan,
+        loginId: String,
+        password: String,
+        account: String,
+        firstBillingDate: LocalDate
+    ) {
+        val user = _state.value.currentUser ?: return
+        viewModelScope.launch {
+            repository.createHostedSubscription(
+                ownerId = user.id,
+                provider = provider,
+                plan = plan,
+                accountMasked = account.takeIf { it.isNotBlank() },
+                loginId = loginId.takeIf { it.isNotBlank() },
+                passwordMasked = password.takeIf { it.isNotBlank() },
+                firstBillingDate = firstBillingDate
+            )
+            val updated = repository.getMySubscriptions(user.id)
+            _state.update { it.copy(subscriptions = updated) }
+        }
+    }
+
     fun attachSubscription(subscription: Subscription) {
         _state.update { state ->
             if (state.subscriptions.any { it.id == subscription.id }) state else {
@@ -167,9 +193,27 @@ class AppSessionViewModel @Inject constructor(
         val options = profileImages.ifEmpty { listOf(R.drawable.profile) }
         val currentIndex = options.indexOf(user.profileImageRes).takeIf { it >= 0 } ?: 0
         val nextRes = options[(currentIndex + 1) % options.size]
-        val updated = user.copy(profileImageRes = nextRes)
-        userRepository.updateUser(updated)
-        _state.update { it.copy(currentUser = updated, users = userRepository.getUsers()) }
+        persistUser(user.copy(profileImageRes = nextRes))
+    }
+
+    fun updateCurrentUserEmail(newEmail: String) {
+        val user = _state.value.currentUser ?: return
+        val trimmed = newEmail.trim()
+        if (trimmed.isBlank()) return
+        persistUser(user.copy(email = trimmed))
+    }
+
+    fun updateCurrentUserPhone(newPhone: String) {
+        val user = _state.value.currentUser ?: return
+        val trimmed = newPhone.trim()
+        if (trimmed.isBlank()) return
+        persistUser(user.copy(phone = trimmed))
+    }
+
+    fun updateCurrentUserPassword(newPassword: String) {
+        val user = _state.value.currentUser ?: return
+        if (newPassword.isBlank()) return
+        persistUser(user.copy(password = newPassword))
     }
 
     suspend fun joinPartyByCode(rawCode: String): AuthResult {
@@ -209,4 +253,9 @@ class AppSessionViewModel @Inject constructor(
     }
 
     private fun generateUserId(): String = "u" + System.currentTimeMillis().toString(16)
+
+    private fun persistUser(updated: User) {
+        userRepository.updateUser(updated)
+        _state.update { it.copy(currentUser = updated, users = userRepository.getUsers()) }
+    }
 }

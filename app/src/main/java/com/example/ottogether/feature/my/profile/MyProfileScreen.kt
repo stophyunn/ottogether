@@ -11,20 +11,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -57,7 +56,6 @@ fun MyProfileScreen(
     onMyAccount: () -> Unit = {},
     onSubscriptions: () -> Unit = {},
     onSubscriptionItem: (Subscription) -> Unit = {},
-    onChangeProfileImage: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {}
 ) {
     Scaffold(
@@ -102,7 +100,6 @@ fun MyProfileScreen(
                         .size(72.dp)
                         .clip(RoundedCornerShape(36.dp))
                         .background(Color(0xFFEDEFF3))
-                        .clickable(onClick = onChangeProfileImage)
                 ) {
                     Image(
                         painter = painterResource(id = profileImageRes ?: R.drawable.profile),
@@ -111,28 +108,6 @@ fun MyProfileScreen(
                             .matchParentSize()
                             .clip(RoundedCornerShape(36.dp))
                     )
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .size(28.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        color = Color.White,
-                        shadowElevation = 4.dp
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clickable(onClick = onChangeProfileImage),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.CameraAlt,
-                                contentDescription = "프로필 변경",
-                                tint = Orange,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
                 }
                 Spacer(Modifier.width(16.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
