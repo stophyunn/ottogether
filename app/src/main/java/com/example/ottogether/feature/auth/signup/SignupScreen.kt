@@ -21,6 +21,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ottogether.R
+import com.example.ottogether.core.model.AuthResult
 
 private val BrandOrange = Color(0xFFFF7A2F)
 private val GrayText    = Color(0xFF6F7682)
@@ -40,8 +46,19 @@ private val GrayText    = Color(0xFF6F7682)
 @Composable
 fun SignupScreen(
     onLoginClick: () -> Unit = {},
-    onSubmit: () -> Unit = {}
+    onSubmit: (name: String, email: String, password: String, phone: String?) -> AuthResult =
+        { _, _, _, _ -> AuthResult(false) }
 ) {
+    var email by rememberSaveable { mutableStateOf("") }
+    var lastName by rememberSaveable { mutableStateOf("") }
+    var firstName by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var helper by rememberSaveable { mutableStateOf<String?>(null) }
+    var helperColor by remember { mutableStateOf(Color(0xFFD32F2F)) }
+    val canSubmit = email.isNotBlank() && password.isNotBlank() &&
+        (lastName.isNotBlank() || firstName.isNotBlank())
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -114,8 +131,8 @@ fun SignupScreen(
 
                         // 입력 필드
                         OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
+                            value = email,
+                            onValueChange = { email = it },
                             placeholder = { Text("ottogether @ gmail.com") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -127,16 +144,16 @@ fun SignupScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             OutlinedTextField(
-                                value = "",
-                                onValueChange = {},
+                                value = lastName,
+                                onValueChange = { lastName = it },
                                 placeholder = { Text("성") },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(14.dp)
                             )
                             OutlinedTextField(
-                                value = "",
-                                onValueChange = {},
+                                value = firstName,
+                                onValueChange = { firstName = it },
                                 placeholder = { Text("이름") },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
@@ -145,14 +162,27 @@ fun SignupScreen(
                         }
 
                         OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
+                            value = password,
+                            onValueChange = { password = it },
                             placeholder = { Text("Password") },
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp)
                         )
+
+                        OutlinedTextField(
+                            value = phone,
+                            onValueChange = { phone = it },
+                            placeholder = { Text("휴대폰 번호 (선택)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+
+                        helper?.takeIf { it.isNotBlank() }?.let {
+                            Text(text = it, color = helperColor, fontSize = 12.sp)
+                        }
                     }
 
                     // 하단 Sign up 버튼
@@ -163,7 +193,20 @@ fun SignupScreen(
                         color = Color.Transparent
                     ) {
                         Button(
-                            onClick = onSubmit,
+                            onClick = {
+                                val fullName = listOf(lastName.trim(), firstName.trim())
+                                    .filter { it.isNotBlank() }
+                                    .joinToString(" ")
+                                val result = onSubmit(fullName, email.trim(), password, phone)
+                                if (result.success) {
+                                    helperColor = BrandOrange
+                                    helper = "회원가입이 완료되었어요!"
+                                } else {
+                                    helperColor = Color(0xFFD32F2F)
+                                    helper = result.message ?: "회원가입에 실패했어요"
+                                }
+                            },
+                            enabled = canSubmit,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
