@@ -2,6 +2,8 @@ package com.example.ottogether.feature.plan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.ottogether.core.data.SeedData
+import com.example.ottogether.core.model.Provider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,29 +14,32 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PlanViewModel @Inject constructor(
-    // 추후 실제 데이터 연동 시 주입해서 사용
-    // private val repo: PlanRepository
+    private val seedData: SeedData
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(PlanUiState())
     val ui: StateFlow<PlanUiState> = _ui.asStateFlow()
 
-    /** 홈에서 넘어온 ottId(예: "넷플릭스") 기준으로 요금제 목록 로드 */
+    /** 홈에서 넘어온 ottId(예: "NETFLIX" or "넷플릭스") 기준으로 요금제 목록 로드 */
     fun loadPlans(ottId: String) = viewModelScope.launch {
-        // TODO: repo에서 받아오도록 교체
-        val plans = listOf("프리미엄", "스탠다드", "베이식", "광고형 스탠다드")
+        val provider = runCatching { Provider.valueOf(ottId.uppercase()) }.getOrNull()
+        val catalog = provider?.let { seedData.catalog(it) }
+            ?: seedData.catalogs.firstOrNull { it.displayName == ottId }
+            ?: return@launch
 
         _ui.update {
             it.copy(
-                ottName = ottId,
-                plans = plans,
-                selectedPlan = plans.first() // 기본 선택: 프리미엄
+                providerId = catalog.provider.name,
+                ottName = catalog.displayName,
+                plans = catalog.plans,
+                selectedPlanId = catalog.plans.firstOrNull()?.id,
+                logoRes = catalog.logoRes
             )
         }
     }
 
     /** 요금제 선택 변경 */
-    fun selectPlan(plan: String) {
-        _ui.update { it.copy(selectedPlan = plan) }
+    fun selectPlan(planId: String) {
+        _ui.update { it.copy(selectedPlanId = planId) }
     }
 }
