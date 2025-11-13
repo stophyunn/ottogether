@@ -8,6 +8,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.ottogether.AppSessionState
 import com.example.ottogether.AppSessionViewModel
+import com.example.ottogether.feature.auth.find.FindEmailScreen
+import com.example.ottogether.feature.auth.find.FindPasswordScreen
 import com.example.ottogether.feature.auth.login.LoginScreen
 import com.example.ottogether.feature.auth.signup.SignupScreen
 import com.example.ottogether.feature.home.HomeScreen
