@@ -35,4 +35,24 @@ class FakeSubscriptionRepository @Inject constructor(
             )
         )
     }
+
+    override suspend fun transferOwnership(id: String, newOwnerId: String): Subscription? {
+        val existing = subs[id] ?: return null
+        if (newOwnerId !in existing.members) return null
+        val updated = existing.copy(
+            ownerUserId = newOwnerId,
+            members = listOf(existing.ownerUserId) + existing.members.filterNot { it == newOwnerId }
+        )
+        subs[id] = updated
+        return updated
+    }
+
+    override suspend fun joinPartyByCode(code: String, userId: String): Subscription? {
+        val existing = subs[code] ?: return null
+        if (existing.ownerUserId == userId || userId in existing.members) return null
+        if (existing.members.size + 1 >= existing.plan.maxScreens) return null
+        val updated = existing.copy(members = existing.members + userId)
+        subs[code] = updated
+        return updated
+    }
 }

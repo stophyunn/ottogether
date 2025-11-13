@@ -41,6 +41,7 @@ import com.example.ottogether.core.model.AuthResult
 
 private val BrandOrange = Color(0xFFFF7A2F)
 private val GrayText    = Color(0xFF6F7682)
+private val PlaceholderColor = Color(0xFFC9CFDA)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,7 +134,7 @@ fun SignupScreen(
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            placeholder = { Text("ottogether @ gmail.com") },
+                            placeholder = { Text("ottogether @ gmail.com", color = PlaceholderColor) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp)
@@ -146,7 +147,7 @@ fun SignupScreen(
                             OutlinedTextField(
                                 value = lastName,
                                 onValueChange = { lastName = it },
-                                placeholder = { Text("성") },
+                                placeholder = { Text("성", color = PlaceholderColor) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(14.dp)
@@ -154,7 +155,7 @@ fun SignupScreen(
                             OutlinedTextField(
                                 value = firstName,
                                 onValueChange = { firstName = it },
-                                placeholder = { Text("이름") },
+                                placeholder = { Text("이름", color = PlaceholderColor) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(14.dp)
@@ -164,7 +165,7 @@ fun SignupScreen(
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
-                            placeholder = { Text("Password") },
+                            placeholder = { Text("Password", color = PlaceholderColor) },
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth(),
@@ -174,7 +175,7 @@ fun SignupScreen(
                         OutlinedTextField(
                             value = phone,
                             onValueChange = { phone = it },
-                            placeholder = { Text("휴대폰 번호 (선택)") },
+                            placeholder = { Text("휴대폰 번호 (선택)", color = PlaceholderColor) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp)
@@ -185,39 +186,31 @@ fun SignupScreen(
                         }
                     }
 
-                    // 하단 Sign up 버튼
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
+                    Button(
+                        onClick = {
+                            val fullName = listOf(lastName.trim(), firstName.trim())
+                                .filter { it.isNotBlank() }
+                                .joinToString(" ")
+                            val result = onSubmit(fullName, email.trim(), password, phone)
+                            if (result.success) {
+                                helperColor = BrandOrange
+                                helper = "회원가입이 완료되었어요!"
+                            } else {
+                                helperColor = Color(0xFFD32F2F)
+                                helper = result.message ?: "회원가입에 실패했어요"
+                            }
+                        },
+                        enabled = canSubmit,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
-                        shadowElevation = 8.dp,
-                        color = Color.Transparent
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = BrandOrange,
+                            contentColor = Color.White
+                        )
                     ) {
-                        Button(
-                            onClick = {
-                                val fullName = listOf(lastName.trim(), firstName.trim())
-                                    .filter { it.isNotBlank() }
-                                    .joinToString(" ")
-                                val result = onSubmit(fullName, email.trim(), password, phone)
-                                if (result.success) {
-                                    helperColor = BrandOrange
-                                    helper = "회원가입이 완료되었어요!"
-                                } else {
-                                    helperColor = Color(0xFFD32F2F)
-                                    helper = result.message ?: "회원가입에 실패했어요"
-                                }
-                            },
-                            enabled = canSubmit,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = BrandOrange,
-                                contentColor = Color.White
-                            )
-                        ) {
-                            Text("Sign up", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                        }
+                        Text("Sign up", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

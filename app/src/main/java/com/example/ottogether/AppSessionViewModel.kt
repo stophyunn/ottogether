@@ -3,6 +3,7 @@ package com.example.ottogether
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.ottogether.R
 import com.example.ottogether.core.data.SeedData
 import com.example.ottogether.core.data.SubscriptionRepository
 import com.example.ottogether.core.data.UserRepository
@@ -32,6 +33,12 @@ class AppSessionViewModel @Inject constructor(
         )
     )
     val state: StateFlow<AppSessionState> = _state.asStateFlow()
+
+    private val profileImages = listOf(
+        R.drawable.profile,
+        R.drawable.profile_mint,
+        R.drawable.profile_lilac
+    )
 
     fun onSplashFinished() {
         _state.update { it.copy(hasSeenSplash = true) }
@@ -90,7 +97,8 @@ class AppSessionViewModel @Inject constructor(
             name = name.trim(),
             email = email.trim(),
             phone = phone?.trim()?.takeIf { it.isNotBlank() },
-            password = password
+            password = password,
+            profileImageRes = profileImages.firstOrNull()
         )
         userRepository.addUser(user)
         _state.update { it.copy(users = userRepository.getUsers()) }
@@ -152,6 +160,52 @@ class AppSessionViewModel @Inject constructor(
                 state.copy(subscriptions = state.subscriptions + subscription)
             }
         }
+    }
+
+    fun cycleProfileImage() {
+        val user = _state.value.currentUser ?: return
+        val options = profileImages.ifEmpty { listOf(R.drawable.profile) }
+        val currentIndex = options.indexOf(user.profileImageRes).takeIf { it >= 0 } ?: 0
+        val nextRes = options[(currentIndex + 1) % options.size]
+        val updated = user.copy(profileImageRes = nextRes)
+        userRepository.updateUser(updated)
+        _state.update { it.copy(currentUser = updated, users = userRepository.getUsers()) }
+    }
+
+    suspend fun joinPartyByCode(rawCode: String): AuthResult {
+        val user = _state.value.currentUser ?: return AuthResult(false, "로그인이 필요해요")
+        val trimmed = rawCode.trim()
+        if (trimmed.isBlank()) {
+            return AuthResult(success = false, message = "파티방 주소를 입력해주세요")
+        }
+        val normalized = normalizeInviteCode(trimmed)
+        val result = repository.joinPartyByCode(normalized, user.id)
+            ?: return AuthResult(false, "유효하지 않은 주소이거나 이미 참여했어요")
+        val updatedSubs = repository.getMySubscriptions(user.id)
+        _state.update { it.copy(subscriptions = updatedSubs) }
+        return AuthResult(true, "파티에 참여했어요!")
+    }
+
+    suspend fun transferOwnership(subscriptionId: String, newOwnerId: String): AuthResult {
+        val user = _state.value.currentUser ?: return AuthResult(false, "로그인이 필요해요")
+        val current = repository.getSubscription(subscriptionId)
+        if (current.ownerUserId != user.id) {
+            return AuthResult(false, "파티장만 사용할 수 있어요")
+        }
+        if (newOwnerId == user.id) {
+            return AuthResult(false, "이미 파티장이에요")
+        }
+        val updated = repository.transferOwnership(subscriptionId, newOwnerId)
+            ?: return AuthResult(false, "선택한 파티원을 찾을 수 없어요")
+        val updatedSubs = repository.getMySubscriptions(user.id)
+        _state.update { it.copy(subscriptions = updatedSubs) }
+        val name = _state.value.users.firstOrNull { it.id == newOwnerId }?.name
+        return AuthResult(true, name?.let { "$it 님에게 파티장을 넘겼어요" } ?: "파티장을 양도했어요")
+    }
+
+    private fun normalizeInviteCode(raw: String): String {
+        val trimmed = raw.trim()
+        return trimmed.substringAfterLast('/')
     }
 
     private fun generateUserId(): String = "u" + System.currentTimeMillis().toString(16)

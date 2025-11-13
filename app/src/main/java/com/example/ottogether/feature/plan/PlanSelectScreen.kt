@@ -241,34 +241,30 @@ private fun PlanSelectContent(
 @Composable
 private fun SpecSummaryContent(plan: Plan?) {
     val fallback = "-"
+    val labelStyle = MaterialTheme.typography.bodyMedium.copy(color = TextGray, fontSize = 13.sp)
+    val valueStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFF111111), fontSize = 16.sp)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("월 요금", color = TextGray)
+            Text("월 요금", style = labelStyle)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (plan != null) {
                     Text(
                         text = plan.monthlyPrice.toString(),
-                        color = TextGray,
-                        textDecoration = TextDecoration.LineThrough,
-                        fontSize = 12.sp
+                        style = labelStyle.copy(textDecoration = TextDecoration.LineThrough)
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = plan.sharedMonthlyPrice.toString(),
-                        color = Orange,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        style = valueStyle.copy(color = Orange, fontWeight = FontWeight.Bold)
                     )
                 } else {
                     Text(
                         fallback,
-                        color = Orange,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        style = valueStyle.copy(color = Orange, fontWeight = FontWeight.Bold)
                     )
                 }
             }
@@ -286,17 +282,21 @@ private fun SpecRow(
     value: String,
     emphasize: Boolean = false
 ) {
+    val labelStyle = MaterialTheme.typography.bodyMedium.copy(color = TextGray, fontSize = 13.sp)
+    val valueStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFF111111), fontSize = 15.sp)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = TextGray, fontSize = 14.sp)
+        Text(label, style = labelStyle)
         Text(
             value,
-            color = if (emphasize) Orange else Color.Black,
-            fontWeight = if (emphasize) FontWeight.Bold else FontWeight.Normal,
-            fontSize = if (emphasize) 16.sp else 14.sp
+            style = valueStyle.copy(
+                color = if (emphasize) Orange else valueStyle.color,
+                fontWeight = if (emphasize) FontWeight.Bold else FontWeight.Normal,
+                fontSize = if (emphasize) 16.sp else valueStyle.fontSize
+            )
         )
     }
 }

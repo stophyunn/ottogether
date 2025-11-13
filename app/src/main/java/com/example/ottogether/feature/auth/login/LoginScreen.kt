@@ -40,6 +40,7 @@ import com.example.ottogether.core.model.AuthResult
 
 private val BrandOrange = Color(0xFFFF7A2F)
 private val GrayText    = Color(0xFF6F7682)
+private val PlaceholderColor = Color(0xFFC9CFDA)
 
 @Composable
 fun LoginScreen(
@@ -130,7 +131,7 @@ fun LoginScreen(
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            placeholder = { Text("ottogether @ gmail.com") },
+                            placeholder = { Text("ottogether @ gmail.com", color = PlaceholderColor) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp)
@@ -144,7 +145,7 @@ fun LoginScreen(
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
-                            placeholder = { Text("Password") },
+                            placeholder = { Text("Password", color = PlaceholderColor) },
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth(),
@@ -182,35 +183,27 @@ fun LoginScreen(
                         }
                     }
 
-                    // 하단 log in 버튼 (그림자)
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
+                    Button(
+                        onClick = {
+                            val result = onLogin(email.trim(), password)
+                            if (result.success) {
+                                helper = null
+                                onLoginSuccess()
+                            } else {
+                                helper = result.message ?: "로그인에 실패했어요"
+                            }
+                        },
+                        enabled = canSubmit,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
-                        shadowElevation = 8.dp,
-                        color = Color.Transparent
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = BrandOrange,
+                            contentColor = Color.White
+                        )
                     ) {
-                        Button(
-                            onClick = {
-                                val result = onLogin(email.trim(), password)
-                                if (result.success) {
-                                    helper = null
-                                    onLoginSuccess()
-                                } else {
-                                    helper = result.message ?: "로그인에 실패했어요"
-                                }
-                            },
-                            enabled = canSubmit,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = BrandOrange,
-                                contentColor = Color.White
-                            )
-                        ) {
-                            Text("log in", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                        }
+                        Text("log in", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     Spacer(Modifier.height(12.dp))

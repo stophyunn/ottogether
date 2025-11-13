@@ -18,4 +18,11 @@ class InMemoryUserRepository @Inject constructor(seedData: SeedData) : UserRepos
         users.removeAll { it.email?.equals(user.email, ignoreCase = true) == true }
         users.add(user)
     }
+
+    override fun updateUser(user: User) {
+        val index = users.indexOfFirst { it.id == user.id }
+        if (index >= 0) {
+            users[index] = user
+        }
+    }
 }
