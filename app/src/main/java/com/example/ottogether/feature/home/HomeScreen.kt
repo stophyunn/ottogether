@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -105,7 +106,7 @@ private fun HomeLogoHeader() {
         Image(
             painter = painterResource(id = R.drawable.ic_logo_ottogether),
             contentDescription = "오티투게더 로고",
-            modifier = Modifier.size(width = 240.dp, height = 72.dp)
+            modifier = Modifier.size(width = 200.dp, height = 60.dp)
         )
     }
 }

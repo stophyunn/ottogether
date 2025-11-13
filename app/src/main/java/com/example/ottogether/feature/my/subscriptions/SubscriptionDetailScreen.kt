@@ -267,64 +267,31 @@ fun SubscriptionDetailScreen(
     if (showTransferDialog) {
         AlertDialog(
             onDismissRequest = { showTransferDialog = false },
-            title = {
-                Text(
-                    "파티장을 누구에게 넘길까요?",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            },
+            title = { Text("파티장을 누구에게 넘길까요?") },
             text = {
-                if (subscription.members.isEmpty()) {
-                    Text("양도할 파티원이 없어요", color = TextSub, fontSize = 13.sp)
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        subscription.members.forEach { memberId ->
-                            val name = nameResolver(memberId)
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = Color(0xFFFFF5EE),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            coroutineScope.launch {
-                                                val result = onTransferHost(memberId)
-                                                transferMessageColor = if (result.success) Color(0xFF1B873C) else Color(0xFFD32F2F)
-                                                transferMessage = result.message
-                                                showTransferDialog = false
-                                            }
-                                        }
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(name, fontWeight = FontWeight.SemiBold)
-                                    Icon(
-                                        Icons.Filled.ChevronRight,
-                                        contentDescription = null,
-                                        tint = Orange
-                                    )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    subscription.members.forEach { memberId ->
+                        val name = nameResolver(memberId)
+                        TextButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    val result = onTransferHost(memberId)
+                                    transferMessageColor = if (result.success) Color(0xFF1B873C) else Color(0xFFD32F2F)
+                                    transferMessage = result.message
+                                    showTransferDialog = false
                                 }
                             }
+                        ) {
+                            Text(name, color = Orange, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(
-                    onClick = { showTransferDialog = false },
-                    colors = ButtonDefaults.textButtonColors(contentColor = TextSub)
-                ) {
-                    Text("닫기")
+                TextButton(onClick = { showTransferDialog = false }) {
+                    Text("닫기", color = TextSub)
                 }
-            },
-            colors = AlertDialogDefaults.colors(
-                containerColor = Color.White,
-                titleContentColor = Color(0xFF111111),
-                textContentColor = TextSub
-            )
+            }
         )
     }
 }

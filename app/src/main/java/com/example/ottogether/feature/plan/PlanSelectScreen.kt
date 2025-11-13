@@ -239,6 +239,69 @@ private fun PlanSelectContent(
 }
 
 @Composable
+private fun SpecSummaryContent(plan: Plan?) {
+    val fallback = "-"
+    val labelStyle = MaterialTheme.typography.bodyMedium.copy(color = TextGray, fontSize = 13.sp)
+    val valueStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFF111111), fontSize = 16.sp)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("월 요금", style = labelStyle)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (plan != null) {
+                    Text(
+                        text = plan.monthlyPrice.toString(),
+                        style = labelStyle.copy(textDecoration = TextDecoration.LineThrough)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = plan.sharedMonthlyPrice.toString(),
+                        style = valueStyle.copy(color = Orange, fontWeight = FontWeight.Bold)
+                    )
+                } else {
+                    Text(
+                        fallback,
+                        style = valueStyle.copy(color = Orange, fontWeight = FontWeight.Bold)
+                    )
+                }
+            }
+        }
+
+        SpecRow(label = "영상 화질", value = plan?.quality ?: fallback, emphasize = true)
+        SpecRow(label = "해상도", value = plan?.resolution ?: fallback, emphasize = true)
+        SpecRow(label = "동시접속 가능 대수", value = plan?.maxScreens?.toString() ?: fallback)
+    }
+}
+
+@Composable
+private fun SpecRow(
+    label: String,
+    value: String,
+    emphasize: Boolean = false
+) {
+    val labelStyle = MaterialTheme.typography.bodyMedium.copy(color = TextGray, fontSize = 13.sp)
+    val valueStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFF111111), fontSize = 15.sp)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = labelStyle)
+        Text(
+            value,
+            style = valueStyle.copy(
+                color = if (emphasize) Orange else valueStyle.color,
+                fontWeight = if (emphasize) FontWeight.Bold else FontWeight.Normal,
+                fontSize = if (emphasize) 16.sp else valueStyle.fontSize
+            )
+        )
+    }
+}
+
+@Composable
 private fun SelectedOttBox(
     logoRes: Int,
     title: String
