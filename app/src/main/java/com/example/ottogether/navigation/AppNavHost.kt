@@ -132,6 +132,7 @@ fun AppNavHost(
             val user = sessionState.currentUser
             MyProfileScreen(
                 userName = user?.name,
+                profileImageRes = user?.profileImageRes,
                 subscriptions = sessionState.subscriptions,
                 providerName = { sub ->
                     sessionState.catalogs.firstOrNull { it.provider == sub.provider }?.displayName
@@ -143,6 +144,7 @@ fun AppNavHost(
                 onSubscriptionItem = { sub ->
                     navController.navigate(Route.SubscriptionDetail.path(sub.id))
                 },
+                onChangeProfileImage = sessionViewModel::cycleProfileImage,
                 bottomBar = { MainBottomBar(navController, currentRoute) }
             )
         }
@@ -171,6 +173,7 @@ fun AppNavHost(
         composable(Route.MySubscriptions.path) {
             MySubscriptionsScreen(
                 subscriptions = sessionState.subscriptions,
+                currentUserId = sessionState.currentUser?.id,
                 onBack = { navController.popBackStack() },
                 onItem = { sub -> navController.navigate(Route.SubscriptionDetail.path(sub.id)) },
                 providerName = { sub ->
@@ -187,6 +190,7 @@ fun AppNavHost(
             if (subscription != null) {
                 SubscriptionDetailScreen(
                     subscription = subscription,
+                    currentUserId = sessionState.currentUser?.id,
                     onBack = { navController.popBackStack() },
                     onEditAccount = { navController.navigate(Route.Account.path) },
                     onLeaveConfirmed = {
@@ -195,6 +199,9 @@ fun AppNavHost(
                     },
                     onBillingDateChanged = { date ->
                         sessionViewModel.updateNextBillingDate(subscription.id, date)
+                    },
+                    onTransferHost = { memberId ->
+                        sessionViewModel.transferOwnership(subscription.id, memberId)
                     },
                     nameResolver = { userId -> nameMap[userId]?.name ?: userId }
                 )
@@ -223,7 +230,7 @@ fun AppNavHost(
             if (catalog != null && plan != null) {
                 ShareAccountScreen(
                     ottName = catalog.displayName,
-                    plan = plan.name,
+                    plan = plan,
                     logoRes = catalog.logoRes,
                     onBack = { navController.popBackStack() },
                     onRegisterPartyMatch = { navController.navigate(Route.Account.path) }
@@ -239,9 +246,10 @@ fun AppNavHost(
             if (catalog != null && plan != null) {
                 PaymentInfoScreen(
                     ottName = catalog.displayName,
-                    plan = plan.name,
+                    plan = plan,
                     logoRes = catalog.logoRes,
                     onBack = { navController.popBackStack() },
+                    onJoinParty = { code -> sessionViewModel.joinPartyByCode(code) },
                     onPayDone = {
                         sessionViewModel.refreshSubscriptions()
                         navController.navigate(Route.Home.path) {

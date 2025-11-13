@@ -54,6 +54,7 @@ private val GrayText = Color(0xFF6F7682)
 @Composable
 fun MySubscriptionsScreen(
     subscriptions: List<Subscription>,
+    currentUserId: String?,
     onBack: () -> Unit,
     onItem: (Subscription) -> Unit,
     providerName: (Subscription) -> String = { it.provider.name }
@@ -100,9 +101,15 @@ fun MySubscriptionsScreen(
             items(subscriptions.size) { idx ->
                 val sub = subscriptions[idx]
                 val next = sub.billing.nextBillingDate.format(formatter)
+                val status = if (sub.members.size + 1 >= sub.plan.maxScreens) {
+                    SubscriptionStatus.Matched
+                } else {
+                    SubscriptionStatus.InProgress
+                }
                 SubscriptionCard(
                     subscription = sub,
-                    highlighted = idx == 0,
+                    status = status,
+                    isOwner = sub.ownerUserId == currentUserId,
                     nextDate = next,
                     onClick = { onItem(sub) },
                     providerName = providerName(sub)
@@ -150,13 +157,13 @@ private fun MySubTopBar(onBack: () -> Unit) {
 @Composable
 private fun SubscriptionCard(
     subscription: Subscription,
-    highlighted: Boolean,
+    status: SubscriptionStatus,
+    isOwner: Boolean,
     nextDate: String,
     onClick: () -> Unit,
     providerName: String
 ) {
     val shape = RoundedCornerShape(16.dp)
-    val borderColor = if (highlighted) Color.Transparent else Color.Transparent
 
     Box(
         modifier = Modifier.fillMaxWidth()
@@ -167,7 +174,6 @@ private fun SubscriptionCard(
             tonalElevation = 1.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .border(width = if (highlighted) 2.dp else 0.dp, color = borderColor, shape = shape)
                 .clickable { onClick() }
         ) {
             Row(
@@ -185,18 +191,26 @@ private fun SubscriptionCard(
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("결제일 $nextDate", color = Orange, fontWeight = FontWeight.Black, fontSize = 12.sp)
-                        Spacer(Modifier.width(6.dp))
-                        Image(
-                            painter = painterResource(R.drawable.crown),
-                            contentDescription = "crown",
-                            modifier = Modifier.size(14.dp)
-                        )
+                        if (isOwner) {
+                            Spacer(Modifier.width(6.dp))
+                            Image(
+                                painter = painterResource(R.drawable.crown),
+                                contentDescription = "파티장",
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                     Spacer(Modifier.height(4.dp))
-                    Text(
-                        "$providerName | ${subscription.plan.name}",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "$providerName | ${subscription.plan.name}",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                        if (isOwner) {
+                            Spacer(Modifier.width(6.dp))
+                            Text("파티장", color = Orange, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                     Spacer(Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("${subscription.members.size + 1}명 이용중", color = GrayText, fontSize = 12.sp)
@@ -212,26 +226,30 @@ private fun SubscriptionCard(
             }
         }
 
-        if (highlighted) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .zIndex(1f)
-            ) {
-                HighlightBadge()
-            }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .zIndex(1f)
+        ) {
+            StatusBadge(status)
         }
     }
 }
 
+private enum class SubscriptionStatus { InProgress, Matched }
+
 @Composable
-private fun HighlightBadge() {
+private fun StatusBadge(status: SubscriptionStatus) {
+    val (text, color) = when (status) {
+        SubscriptionStatus.InProgress -> "진행중" to Blue
+        SubscriptionStatus.Matched -> "매칭완료" to Orange
+    }
     Surface(
-        color = Blue,
+        color = color,
         shape = RoundedCornerShape(bottomStart = 16.dp)
     ) {
         Text(
-            "진행중",
+            text,
             color = Color.White,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             fontSize = 11.sp,

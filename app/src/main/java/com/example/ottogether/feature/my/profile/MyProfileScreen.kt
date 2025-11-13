@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -48,12 +50,14 @@ private val GrayText = Color(0xFF6F7682)
 @Composable
 fun MyProfileScreen(
     userName: String?,
+    profileImageRes: Int?,
     subscriptions: List<Subscription>,
     providerName: (Subscription) -> String = { it.provider.name },
     onBack: () -> Unit = {},
     onMyAccount: () -> Unit = {},
     onSubscriptions: () -> Unit = {},
     onSubscriptionItem: (Subscription) -> Unit = {},
+    onChangeProfileImage: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {}
 ) {
     Scaffold(
@@ -93,14 +97,43 @@ fun MyProfileScreen(
                     .padding(top = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.profile),
-                    contentDescription = "프로필",
+                Box(
                     modifier = Modifier
                         .size(72.dp)
                         .clip(RoundedCornerShape(36.dp))
                         .background(Color(0xFFEDEFF3))
-                )
+                        .clickable(onClick = onChangeProfileImage)
+                ) {
+                    Image(
+                        painter = painterResource(id = profileImageRes ?: R.drawable.profile),
+                        contentDescription = "프로필",
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clip(RoundedCornerShape(36.dp))
+                    )
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(28.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White,
+                        shadowElevation = 4.dp
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable(onClick = onChangeProfileImage),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "프로필 변경",
+                                tint = Orange,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.width(16.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(userName ?: "로그인이 필요해요", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)

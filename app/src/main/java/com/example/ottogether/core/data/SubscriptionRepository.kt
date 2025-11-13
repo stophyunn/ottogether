@@ -8,4 +8,6 @@ interface SubscriptionRepository {
     suspend fun getSubscription(id: String): Subscription
     suspend fun leaveSubscription(id: String, userId: String)
     suspend fun updateNextBillingDate(id: String, nextDate: LocalDate)
+    suspend fun transferOwnership(id: String, newOwnerId: String): Subscription?
+    suspend fun joinPartyByCode(code: String, userId: String): Subscription?
 }

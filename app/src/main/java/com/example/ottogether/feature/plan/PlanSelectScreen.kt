@@ -44,7 +44,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +51,7 @@ import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
 import com.example.ottogether.core.model.Money
 import com.example.ottogether.core.model.Plan
+import com.example.ottogether.core.ui.MembershipSpecSummary
 import com.example.ottogether.ui.theme.OttogetherTheme
 
 private val BgSoft = Color(0xFFF6F6FB)
@@ -168,7 +168,7 @@ private fun PlanSelectContent(
                         .padding(horizontal = 30.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    SpecSummaryContent(plan = ui.selectedPlan)
+                    MembershipSpecSummary(plan = ui.selectedPlan)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -235,69 +235,6 @@ private fun PlanSelectContent(
                 onSelect = onSelectPlan
             )
         }
-    }
-}
-
-@Composable
-private fun SpecSummaryContent(plan: Plan?) {
-    val fallback = "-"
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("월 요금", color = TextGray)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (plan != null) {
-                    Text(
-                        text = plan.monthlyPrice.toString(),
-                        color = TextGray,
-                        textDecoration = TextDecoration.LineThrough,
-                        fontSize = 12.sp
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = plan.sharedMonthlyPrice.toString(),
-                        color = Orange,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                } else {
-                    Text(
-                        fallback,
-                        color = Orange,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                }
-            }
-        }
-
-        SpecRow(label = "영상 화질", value = plan?.quality ?: fallback, emphasize = true)
-        SpecRow(label = "해상도", value = plan?.resolution ?: fallback, emphasize = true)
-        SpecRow(label = "동시접속 가능 대수", value = plan?.maxScreens?.toString() ?: fallback)
-    }
-}
-
-@Composable
-private fun SpecRow(
-    label: String,
-    value: String,
-    emphasize: Boolean = false
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, color = TextGray, fontSize = 14.sp)
-        Text(
-            value,
-            color = if (emphasize) Orange else Color.Black,
-            fontWeight = if (emphasize) FontWeight.Bold else FontWeight.Normal,
-            fontSize = if (emphasize) 16.sp else 14.sp
-        )
     }
 }
 
