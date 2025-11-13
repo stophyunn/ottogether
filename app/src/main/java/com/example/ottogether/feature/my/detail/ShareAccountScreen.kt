@@ -2,6 +2,7 @@
 package com.example.ottogether.feature.my.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,17 +22,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +51,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
 import com.example.ottogether.core.model.Money
@@ -65,6 +78,12 @@ fun ShareAccountScreen(
     onBack: () -> Unit = {},
     onRegisterPartyMatch: () -> Unit = {}
 ) {
+    var loginId by rememberSaveable { mutableStateOf("song2025@sookmyung.ac.kr") }
+    var password by rememberSaveable { mutableStateOf("ottogether2024") }
+    var account by rememberSaveable { mutableStateOf("국민은행 2020-2020-2020202") }
+    var editingField by remember { mutableStateOf<EditableField?>(null) }
+    var editingValue by remember { mutableStateOf("") }
+
     Scaffold(
         containerColor = BgSoft,
         topBar = {
@@ -150,8 +169,12 @@ fun ShareAccountScreen(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     LabelValueRow(
                         label = "아이디",
-                        value = "song2025@sookmyung.ac.kr",
-                        trailingAction = "수정하기"
+                        value = loginId,
+                        trailingAction = "수정하기",
+                        onActionClick = {
+                            editingField = EditableField.Login
+                            editingValue = loginId
+                        }
                     )
 
                     Divider(
@@ -162,15 +185,27 @@ fun ShareAccountScreen(
 
                     LabelValueRow(
                         label = "비밀번호",
-                        value = "************",
-                        trailingAction = "수정하기"
+                        value = maskPassword(password),
+                        trailingAction = "수정하기",
+                        onActionClick = {
+                            editingField = EditableField.Password
+                            editingValue = password
+                        }
                     )
                 }
             }
 
             /* 계좌번호 카드 */
             AppCard {
-                LabelValueRow(label = "계좌번호", value = "국민은행 2020-2020-2020202", trailingAction = "수정하기")
+                LabelValueRow(
+                    label = "계좌번호",
+                    value = account,
+                    trailingAction = "수정하기",
+                    onActionClick = {
+                        editingField = EditableField.Account
+                        editingValue = account
+                    }
+                )
             }
 
             /* 결제/다음 결제 */
@@ -198,6 +233,29 @@ fun ShareAccountScreen(
 
             Spacer(Modifier.height(12.dp)) // 본문과 고정 바 간격
         }
+    }
+
+    editingField?.let { field ->
+        EditValueDialog(
+            title = when (field) {
+                EditableField.Login -> "아이디를 수정할게요"
+                EditableField.Password -> "비밀번호를 수정할게요"
+                EditableField.Account -> "계좌번호를 수정할게요"
+            },
+            value = editingValue,
+            onValueChange = { editingValue = it },
+            isPassword = field == EditableField.Password,
+            keyboardType = KeyboardType.Text,
+            onDismiss = { editingField = null },
+            onConfirm = { newValue ->
+                when (field) {
+                    EditableField.Login -> loginId = newValue
+                    EditableField.Password -> password = newValue
+                    EditableField.Account -> account = newValue
+                }
+                editingField = null
+            }
+        )
     }
 }
 
@@ -260,7 +318,7 @@ private fun LabelValueRow(
                     fontSize = 12.sp,
                     modifier = Modifier
                         .padding(start = 8.dp)
-                    //.clickable { onActionClick?.invoke() } // 클릭 필요 시 해제
+                        .clickable(enabled = onActionClick != null) { onActionClick?.invoke() }
                 )
             }
         }
@@ -277,6 +335,52 @@ private fun LabelValueRow(
         )
     }
 }
+
+@Composable
+private fun EditValueDialog(
+    title: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    isPassword: Boolean,
+    keyboardType: KeyboardType,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(value) },
+                enabled = value.isNotBlank()
+            ) {
+                Text("확인", color = Orange, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소", color = TextGray)
+            }
+        }
+    )
+}
+
+private fun maskPassword(password: String): String {
+    if (password.isBlank()) return "-"
+    return "•".repeat(password.length.coerceAtMost(12))
+}
+
+private enum class EditableField { Login, Password, Account }
 
 
 @Composable
