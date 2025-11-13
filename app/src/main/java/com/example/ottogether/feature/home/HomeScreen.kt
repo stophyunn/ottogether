@@ -4,16 +4,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -147,11 +144,13 @@ private fun SubscriptionSummary(
                 StatCard(
                     label = "이번달 절약 금액",
                     value = formatMoney(totalSaved),
-                    highlight = true
+                    highlight = true,
+                    modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     label = "총 나의 구독료",
-                    value = formatMoney(totalShared)
+                    value = formatMoney(totalShared),
+                    modifier = Modifier.weight(1f)
                 )
             }
 
@@ -173,7 +172,7 @@ private fun SubscriptionSummary(
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Highlight),
                 border = ButtonDefaults.outlinedButtonBorder().copy(brush = SolidColor(Highlight))
             ) {
-                Text("결제일 수정하기")
+                Text("나의 구독 캘린더")
             }
         }
     }
@@ -241,10 +240,11 @@ private fun ProviderCard(
 private fun StatCard(
     label: String,
     value: String,
-    highlight: Boolean = false
+    highlight: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = Modifier.weight(1f),
+        modifier = Modifier,
         color = SectionBg,
         shape = MaterialTheme.shapes.medium
     ) {
