@@ -2,12 +2,14 @@ package com.example.ottogether.feature.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.ottogether.R
 import com.example.ottogether.core.data.SeedData
@@ -60,9 +63,9 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
                 .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             HomeLogoHeader()
 
@@ -114,43 +117,54 @@ private fun SubscriptionSummary(
     onOpenCalendar: () -> Unit,
     titleProvider: (Subscription) -> String
 ) {
+    val formatter = DateTimeFormatter.ofPattern("MM월 dd일")
+    val totalFull = subscriptions.sumOf { it.plan.monthlyPrice.amountWon }
+    val totalShared = subscriptions.sumOf { it.plan.sharedMonthlyPrice.amountWon }
+    val totalSaved = (totalFull - totalShared).coerceAtLeast(0)
+    val nextBilling = subscriptions.minByOrNull { it.billing.nextBillingDate }
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 0.dp),
         color = Color.White,
         shadowElevation = 2.dp,
         shape = MaterialTheme.shapes.large
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = "다가오는 결제",
+                text = "이번 달 구독 리포트",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
 
-            if (subscriptions.isEmpty()) {
-                Text("등록된 구독이 없습니다", color = Color(0xFF6F7682))
-            } else {
-                val formatter = DateTimeFormatter.ofPattern("MM월 dd일")
-                subscriptions.take(3).forEach { sub ->
-                    val next = sub.billing.nextBillingDate.format(formatter)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${titleProvider(sub)} | ${sub.plan.name}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = next,
-                            color = Highlight,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatCard(
+                    label = "이번달 절약 금액",
+                    value = formatMoney(totalSaved),
+                    highlight = true
+                )
+                StatCard(
+                    label = "총 나의 구독료",
+                    value = formatMoney(totalShared)
+                )
+            }
+
+            nextBilling?.let { upcoming ->
+                Text(
+                    text = "다가오는 결제 · ${titleProvider(upcoming)} ${upcoming.plan.name} · ${upcoming.billing.nextBillingDate.format(formatter)}",
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF6F7682))
+                )
+            } ?: run {
+                Text(
+                    text = "등록된 구독이 없습니다",
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF9AA0A6))
+                )
             }
 
             Button(
@@ -170,11 +184,11 @@ private fun ProviderGrid(
     catalogs: List<SeedData.ProviderCatalog>,
     onSelect: (String) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        catalogs.chunked(2).forEach { rowItems ->
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        catalogs.chunked(3).forEach { rowItems ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 rowItems.forEach { catalog ->
                     ProviderCard(
@@ -184,7 +198,7 @@ private fun ProviderGrid(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                if (rowItems.size == 1) {
+                repeat(3 - rowItems.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
@@ -209,16 +223,55 @@ private fun ProviderCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 18.dp),
+                .padding(vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Image(
                 painter = painterResource(id = logoRes),
                 contentDescription = name,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(40.dp)
             )
             Text(text = name, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
+
+@Composable
+private fun StatCard(
+    label: String,
+    value: String,
+    highlight: Boolean = false
+) {
+    Surface(
+        modifier = Modifier.weight(1f),
+        color = SectionBg,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = Color(0xFF6F7682),
+                    textAlign = TextAlign.Center
+                ),
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = if (highlight) Highlight else Color(0xFF111111)
+                ),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+private fun formatMoney(amount: Int): String =
+    if (amount <= 0) "0원" else "%,d원".format(amount)

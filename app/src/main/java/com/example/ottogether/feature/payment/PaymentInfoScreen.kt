@@ -55,6 +55,9 @@ import com.example.ottogether.core.model.AuthResult
 import kotlinx.coroutines.launch
 import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
+import com.example.ottogether.core.model.Money
+import com.example.ottogether.core.model.Plan
+import com.example.ottogether.core.ui.MembershipSpecSummary
 import com.example.ottogether.ui.theme.PreviewContainer
 
 /* tokens */
@@ -66,7 +69,7 @@ private val TextGray = Color(0xFF6F7682)
 @Composable
 fun PaymentInfoScreen(
     ottName: String,
-    plan: String,
+    plan: Plan,
     logoRes: Int,
     onBack: () -> Unit = {},
     onJoinParty: suspend (String) -> AuthResult = { AuthResult(false) },
@@ -110,7 +113,7 @@ fun PaymentInfoScreen(
                         .padding(horizontal = 24.dp, vertical = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    SummarySpec()
+                    MembershipSpecSummary(plan = plan)
                     Button(
                         onClick = onPayDone,
                         modifier = Modifier
@@ -365,59 +368,23 @@ private fun MethodChip(text: String, modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun SummarySpec() {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("월 요금", color = TextGray)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "1,700원",
-                    style = androidx.compose.ui.text.TextStyle(
-                        color = Color(0xFFB9BFCC),
-                        textDecoration = TextDecoration.LineThrough,
-                        fontSize = 14.sp
-                    )
-                )
-                Spacer(Modifier.width(12.dp))
-                Text("2,500원", color = Orange, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            }
-        }
-        SpecRow("영상 화질", "가장 좋음", true)
-        SpecRow("해상도", "4K + HDR", true)
-        SpecRow("동시접속 가능 대수", "6")
-    }
-}
-
-@Composable
-private fun SpecRow(label: String, value: String, emphasize: Boolean = false) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, color = TextGray, fontSize = 14.sp)
-        Text(
-            value,
-            color = if (emphasize) Orange else Color.Black,
-            fontWeight = if (emphasize) FontWeight.Bold else FontWeight.Normal,
-            fontSize = if (emphasize) 16.sp else 14.sp
-        )
-    }
-}
-
 /* preview */
 @Preview(showBackground = true, widthDp = 393, heightDp = 852, name = "결제 정보 – Preview")
 @Composable
 private fun PaymentInfoPreview() {
+    val samplePlan = Plan(
+        id = "netflix-premium",
+        name = "프리미엄",
+        quality = "가장 좋음",
+        resolution = "4K + HDR",
+        maxScreens = 6,
+        monthlyPrice = Money(17000),
+        sharedMonthlyPrice = Money(4250)
+    )
     PreviewContainer {
         PaymentInfoScreen(
             ottName = "넷플릭스",
-            plan = "프리미엄",
+            plan = samplePlan,
             logoRes = R.drawable.ic_logo_netflix
         )
     }

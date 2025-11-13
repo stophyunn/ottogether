@@ -230,7 +230,7 @@ fun AppNavHost(
             if (catalog != null && plan != null) {
                 ShareAccountScreen(
                     ottName = catalog.displayName,
-                    plan = plan.name,
+                    plan = plan,
                     logoRes = catalog.logoRes,
                     onBack = { navController.popBackStack() },
                     onRegisterPartyMatch = { navController.navigate(Route.Account.path) }
@@ -246,7 +246,7 @@ fun AppNavHost(
             if (catalog != null && plan != null) {
                 PaymentInfoScreen(
                     ottName = catalog.displayName,
-                    plan = plan.name,
+                    plan = plan,
                     logoRes = catalog.logoRes,
                     onBack = { navController.popBackStack() },
                     onJoinParty = { code -> sessionViewModel.joinPartyByCode(code) },

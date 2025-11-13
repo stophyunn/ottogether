@@ -44,7 +44,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +51,7 @@ import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
 import com.example.ottogether.core.model.Money
 import com.example.ottogether.core.model.Plan
+import com.example.ottogether.core.ui.MembershipSpecSummary
 import com.example.ottogether.ui.theme.OttogetherTheme
 
 private val BgSoft = Color(0xFFF6F6FB)
@@ -168,7 +168,7 @@ private fun PlanSelectContent(
                         .padding(horizontal = 30.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    SpecSummaryContent(plan = ui.selectedPlan)
+                    MembershipSpecSummary(plan = ui.selectedPlan)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
