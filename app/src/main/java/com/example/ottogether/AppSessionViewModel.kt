@@ -64,13 +64,6 @@ class AppSessionViewModel @Inject constructor(
         return AuthResult(success = true)
     }
 
-    fun loginAsDemoUser(): AuthResult {
-        val demoUser = userRepository.getUsers().firstOrNull()
-            ?: return AuthResult(success = false, message = "테스트 계정을 찾을 수 없어요")
-        loginById(demoUser.id)
-        return AuthResult(success = true)
-    }
-
     fun registerUser(name: String, email: String, password: String, phone: String?): AuthResult {
         if (name.isBlank() || email.isBlank() || password.isBlank()) {
             return AuthResult(success = false, message = "필수 정보를 입력해주세요")

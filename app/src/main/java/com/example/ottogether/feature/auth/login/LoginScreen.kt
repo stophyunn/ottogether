@@ -47,7 +47,6 @@ fun LoginScreen(
     onFindEmailClick: () -> Unit = {},
     onFindPasswordClick: () -> Unit = {},
     onLogin: (String, String) -> AuthResult = { _, _ -> AuthResult(false) },
-    onLoginWithTestAccount: () -> AuthResult = { AuthResult(false) },
     onLoginSuccess: () -> Unit = {},
 ) {
     var email by rememberSaveable { mutableStateOf("") }
