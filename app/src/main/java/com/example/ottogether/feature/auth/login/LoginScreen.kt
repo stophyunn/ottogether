@@ -215,15 +215,12 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(12.dp))
 
-                    if (onLoginWithTestAccount != null) {
+                    onLoginWithTestAccount?.let { loginWithTestAccount ->
                         Spacer(Modifier.height(12.dp))
 
                         Button(
                             onClick = {
-                                // ✅ 먼저 non-null 로 지역 변수에 담기
-                                val loginDemo = onLoginWithTestAccount ?: return@Button
-
-                                val result: AuthResult = loginDemo()
+                                val result = loginWithTestAccount()
                                 if (result.success) {
                                     helper = null
                                     onLoginSuccess()

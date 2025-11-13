@@ -3,7 +3,6 @@ package com.example.ottogether.feature.home
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,9 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -81,7 +78,7 @@ fun HomeScreen(
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
 
-            ProviderCarousel(catalogs = catalogs, onSelect = onSelectProvider)
+            ProviderGrid(catalogs = catalogs, onSelect = onSelectProvider)
 
             Button(
                 onClick = onOpenSubscriptions,
@@ -185,21 +182,28 @@ private fun SubscriptionSummary(
 }
 
 @Composable
-private fun ProviderCarousel(
+private fun ProviderGrid(
     catalogs: List<SeedData.ProviderCatalog>,
     onSelect: (String) -> Unit
 ) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp)
-    ) {
-        items(catalogs, key = { it.provider.name }) { catalog ->
-            ProviderCard(
-                name = catalog.displayName,
-                logoRes = catalog.logoRes,
-                onClick = { onSelect(catalog.provider.name) },
-                modifier = Modifier.width(160.dp)
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        catalogs.chunked(2).forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                rowItems.forEach { catalog ->
+                    ProviderCard(
+                        name = catalog.displayName,
+                        logoRes = catalog.logoRes,
+                        onClick = { onSelect(catalog.provider.name) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (rowItems.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
