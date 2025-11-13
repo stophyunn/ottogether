@@ -59,9 +59,9 @@ import com.example.ottogether.core.model.Subscription
 import com.example.ottogether.core.ui.BottomConfirmSheet
 import com.example.ottogether.core.ui.logoFor
 import kotlinx.coroutines.launch
-import java.time.Instant
+import com.example.ottogether.core.util.toEpochMillis
+import com.example.ottogether.core.util.toLocalDate
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val BgSoft = Color(0xFFF6F6FB)
@@ -383,9 +383,3 @@ private fun InviteLinkCard(link: String) {
         }
     }
 }
-
-private fun LocalDate.toEpochMillis(): Long =
-    this.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-private fun Long.toLocalDate(): LocalDate =
-    Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()

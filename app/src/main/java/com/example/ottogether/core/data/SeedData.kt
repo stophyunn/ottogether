@@ -44,6 +44,27 @@ class SeedData @Inject constructor() {
             email = "lazy@ottogether.app",
             phone = "010-4444-4444",
             password = "password3"
+        ),
+        User(
+            id = "u4",
+            name = "성실한 무지",
+            email = "steady@ottogether.app",
+            phone = "010-5555-5555",
+            password = "password4"
+        ),
+        User(
+            id = "u5",
+            name = "열정 무지",
+            email = "passion@ottogether.app",
+            phone = "010-6666-6666",
+            password = "password5"
+        ),
+        User(
+            id = "u6",
+            name = "야근 무지",
+            email = "overtime@ottogether.app",
+            phone = "010-7777-7777",
+            password = "password6"
         )
     )
 
@@ -170,7 +191,13 @@ class SeedData @Inject constructor() {
             provider = Provider.NETFLIX,
             plan = plan(Provider.NETFLIX, "netflix-premium"),
             ownerUserId = users[0].id,
-            members = listOf(users[1].id, users[2].id),
+            members = listOf(
+                users[1].id,
+                users[2].id,
+                users[3].id,
+                users[4].id,
+                users[5].id
+            ),
             billing = BillingInfo(
                 accountMasked = "국민은행 00000-0000-0000",
                 loginId = users[0].email,
@@ -198,7 +225,7 @@ class SeedData @Inject constructor() {
             provider = Provider.TVING,
             plan = plan(Provider.TVING, "tving-premium"),
             ownerUserId = users[1].id,
-            members = listOf(users[0].id),
+            members = listOf(users[0].id, users[3].id),
             billing = BillingInfo(
                 accountMasked = "카카오뱅크 33333-3333-3333",
                 loginId = users[1].email,

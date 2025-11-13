@@ -1,5 +1,8 @@
 package com.example.ottogether.core.data
 
+import com.example.ottogether.core.model.BillingInfo
+import com.example.ottogether.core.model.Plan
+import com.example.ottogether.core.model.Provider
 import com.example.ottogether.core.model.Subscription
 import java.time.LocalDate
 
@@ -55,4 +58,35 @@ class FakeSubscriptionRepository @Inject constructor(
         subs[code] = updated
         return updated
     }
+
+    override suspend fun createHostedSubscription(
+        ownerId: String,
+        provider: Provider,
+        plan: Plan,
+        accountMasked: String?,
+        loginId: String?,
+        passwordMasked: String?,
+        firstBillingDate: LocalDate
+    ): Subscription {
+        val id = generateSubscriptionId()
+        val subscription = Subscription(
+            id = id,
+            provider = provider,
+            plan = plan,
+            ownerUserId = ownerId,
+            members = emptyList(),
+            billing = BillingInfo(
+                accountMasked = accountMasked,
+                loginId = loginId,
+                passwordMasked = passwordMasked,
+                cycleDay = firstBillingDate.dayOfMonth,
+                nextBillingDate = firstBillingDate
+            )
+        )
+        subs[id] = subscription
+        return subscription
+    }
+
+    private fun generateSubscriptionId(): String =
+        "party-" + System.currentTimeMillis().toString(16)
 }
