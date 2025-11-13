@@ -43,7 +43,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -51,67 +50,91 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
+import com.example.ottogether.core.model.Money
+import com.example.ottogether.core.model.Plan
 import com.example.ottogether.ui.theme.OttogetherTheme
 
-/* ---------- 색/모양 토큰 ---------- */
-private val ColorOrange = Color(0xFFFF7A2F)
-private val ColorPurple = Color(0xFF8C7BFF)
-private val ColorSurfaceSoft = Color(0xFFF6F6FB)
-private val BgSoft   = Color(0xFFF6F6FB)
-private val Orange   = Color(0xFFFF7A2F)
+private val BgSoft = Color(0xFFF6F6FB)
+private val Orange = Color(0xFFFF7A2F)
 private val TextGray = Color(0xFF6F7682)
 private val CardRadius = 16.dp
 
-/* ===========================================================
- *  Screen
- * =========================================================== */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanSelectScreen(
-    ottId: String,
-    onBack: () -> Unit = {}
+    providerKey: String,
+    onBack: () -> Unit = {},
+    onHost: (providerId: String, planId: String) -> Unit = { _, _ -> },
+    onMember: (providerId: String, planId: String) -> Unit = { _, _ -> }
 ) {
     val isPreview = LocalInspectionMode.current
-    val ui: PlanUiState =
-        if (isPreview) {
-            remember {
-                PlanUiState(
-                    ottName = ottId.ifBlank { "넷플릭스" },
-                    plans = listOf("프리미엄", "스탠다드", "베이식", "광고형 스탠다드"),
-                    selectedPlan = "프리미엄"
-                )
-            }
-        } else {
-            val vm: PlanViewModel = androidx.hilt.navigation.compose.hiltViewModel()
-            LaunchedEffect(ottId) { vm.loadPlans(ottId) }
-            vm.ui.collectAsState().value
+    if (isPreview) {
+        val previewState = remember {
+            PlanUiState(
+                providerId = "NETFLIX",
+                ottName = providerKey.ifBlank { "넷플릭스" },
+                plans = listOf(
+                    Plan(
+                        id = "netflix-premium",
+                        name = "프리미엄",
+                        quality = "가장 좋음",
+                        resolution = "4K + HDR",
+                        maxScreens = 6,
+                        monthlyPrice = Money(17000)
+                    ),
+                    Plan(
+                        id = "netflix-standard",
+                        name = "스탠다드",
+                        quality = "좋음",
+                        resolution = "1080p",
+                        maxScreens = 4,
+                        monthlyPrice = Money(13500)
+                    )
+                ),
+                selectedPlanId = "netflix-premium",
+                logoRes = R.drawable.ic_logo_netflix
+            )
         }
+        PlanSelectContent(
+            ui = previewState,
+            onBack = onBack,
+            onSelectPlan = {},
+            onHost = {},
+            onMember = {}
+        )
+        return
+    }
+
+    val vm: PlanViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    LaunchedEffect(providerKey) { vm.loadPlans(providerKey) }
+    val uiState = vm.ui.collectAsState().value
 
     PlanSelectContent(
-        ui = ui,
+        ui = uiState,
         onBack = onBack,
-        onSelect = { /* TODO: vm.select(it) */ },
-        onShareMine = { /* TODO */ },
-        onLeader = { /* TODO */ },
-        onUseAsLeader = { /* TODO */ }
+        onSelectPlan = vm::selectPlan,
+        onHost = {
+            val plan = uiState.selectedPlan ?: return@PlanSelectContent
+            onHost(uiState.providerId, plan.id)
+        },
+        onMember = {
+            val plan = uiState.selectedPlan ?: return@PlanSelectContent
+            onMember(uiState.providerId, plan.id)
+        }
     )
 }
 
-/* ===========================================================
- *  Content
- * =========================================================== */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlanSelectContent(
     ui: PlanUiState,
     onBack: () -> Unit,
-    onSelect: (String) -> Unit,
-    onShareMine: () -> Unit,
-    onLeader: () -> Unit,
-    onUseAsLeader: () -> Unit
+    onSelectPlan: (String) -> Unit,
+    onHost: () -> Unit,
+    onMember: () -> Unit
 ) {
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = BgSoft,
         topBar = {
             TopAppBar(
                 title = {
@@ -132,7 +155,6 @@ private fun PlanSelectContent(
             )
         },
         bottomBar = {
-            // 하단을 덮는 큰 박스형 패널 (카드 X)
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = Color.White,
@@ -144,20 +166,17 @@ private fun PlanSelectContent(
                         .navigationBarsPadding()
                         .imePadding()
                         .padding(horizontal = 30.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp) // 텍스트-버튼 간격 조금 더
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    // 멤버십 정보 요약(카드가 아닌 내용만)
-                    SpecSummaryContent()
+                    SpecSummaryContent(plan = ui.selectedPlan)
 
-                    // 패널 위에 올라가는 버튼들 (내 계정 공유하기, 파티원으로 이용하기)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 왼쪽: 내 계정 공유하기 (Outlined)
                         OutlinedButton(
-                            onClick = onUseAsLeader,
+                            onClick = onHost,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp),
@@ -173,9 +192,8 @@ private fun PlanSelectContent(
                             )
                         }
 
-                        // 오른쪽: 파티원으로 이용하기 (Filled)
                         Button(
-                            onClick = onUseAsLeader,
+                            onClick = onMember,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp),
@@ -202,35 +220,28 @@ private fun PlanSelectContent(
                 .padding(horizontal = 20.dp, vertical = 8.dp)
                 .fillMaxSize()
         ) {
-            // 상단 선택된 OTT 박스 (홈 카드 스타일과 동일)
             SelectedOttBox(
-                logoRes = R.drawable.ic_logo_netflix,
-                title = "${ui.ottName} | ${ui.selectedPlan ?: "요금제"}"
+                logoRes = ui.logoRes ?: R.drawable.ic_logo_netflix,
+                title = ui.selectedPlan?.let { "${ui.ottName} | ${it.name}" } ?: ui.ottName
             )
 
             Spacer(Modifier.height(16.dp))
             Divider(color = Color(0xFFE7E8EE), thickness = 1.dp)
             Spacer(Modifier.height(16.dp))
 
-            // 2×2 정사각형 요금제 카드
             SquarePlanGrid(
                 plans = ui.plans,
-                selected = ui.selectedPlan,
-                badgePlan = "프리미엄",
-                onSelect = onSelect
+                selectedId = ui.selectedPlanId,
+                onSelect = onSelectPlan
             )
         }
     }
 }
 
-/* ===========================================================
- *  Components
- * =========================================================== */
-
 @Composable
-private fun SpecSummaryContent() {
+private fun SpecSummaryContent(plan: Plan?) {
+    val fallback = "-"
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // 월 요금 행
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -238,28 +249,34 @@ private fun SpecSummaryContent() {
         ) {
             Text("월 요금", color = TextGray)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "1,700원",
-                    style = TextStyle(
-                        color = Color(0xFFB9BFCC),
+                if (plan != null) {
+                    Text(
+                        text = plan.monthlyPrice.toString(),
+                        color = TextGray,
                         textDecoration = TextDecoration.LineThrough,
-                        fontSize = 14.sp
+                        fontSize = 12.sp
                     )
-                )
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    "2,500원",
-                    color = Orange,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = plan.sharedMonthlyPrice.toString(),
+                        color = Orange,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                } else {
+                    Text(
+                        fallback,
+                        color = Orange,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
             }
         }
 
-        // 상세 3줄
-        SpecRow(label = "영상 화질", value = "가장 좋음", emphasize = true)
-        SpecRow(label = "해상도",   value = "4K + HDR",  emphasize = true)
-        SpecRow(label = "동시접속 가능 대수", value = "6")
+        SpecRow(label = "영상 화질", value = plan?.quality ?: fallback, emphasize = true)
+        SpecRow(label = "해상도", value = plan?.resolution ?: fallback, emphasize = true)
+        SpecRow(label = "동시접속 가능 대수", value = plan?.maxScreens?.toString() ?: fallback)
     }
 }
 
@@ -289,7 +306,7 @@ private fun SelectedOttBox(
     logoRes: Int,
     title: String
 ) {
-    AppCard( // 홈 카드와 동일: shape=16dp, padding=20x16, elevation=6dp
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
         highlighted = false,
         padded = true
@@ -317,12 +334,10 @@ private fun SelectedOttBox(
     }
 }
 
-/* 정사각형 2×2 그리드 */
 @Composable
 private fun SquarePlanGrid(
-    plans: List<String>,
-    selected: String?,
-    badgePlan: String,
+    plans: List<Plan>,
+    selectedId: String?,
     onSelect: (String) -> Unit
 ) {
     val rows = plans.chunked(2)
@@ -332,52 +347,90 @@ private fun SquarePlanGrid(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             row.forEach { plan ->
-                val isSelected = plan == selected
-                val border = if (isSelected) ColorOrange else Color(0xFFE6E7ED)
-                val bg = if (isSelected) ColorOrange else Color.White
+                val isSelected = plan.id == selectedId
+                val border = if (isSelected) Orange else Color(0xFFE6E7ED)
+                val bg = if (isSelected) Orange else Color.White
                 val fg = if (isSelected) Color.White else Color.Black
+                val accent = if (isSelected) Color.White else Orange
 
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .aspectRatio(1f) // 정사각형
+                        .aspectRatio(1f)
                         .clip(RoundedCornerShape(CardRadius))
                         .border(2.dp, border, RoundedCornerShape(CardRadius))
                         .background(bg)
-                        .clickable { onSelect(plan) }
+                        .clickable { onSelect(plan.id) }
                         .padding(12.dp),
                     contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = plan,
-                        color = fg,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = plan.name,
+                                color = fg,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp
+                                )
+                            )
+                        Text(
+                            text = plan.monthlyPrice.toString(),
+                            color = fg.copy(alpha = 0.7f),
+                            fontSize = 12.sp,
+                            textDecoration = TextDecoration.LineThrough
                         )
-                    )
+                        Text(
+                            text = plan.sharedMonthlyPrice.toString(),
+                            color = accent,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                    }
                 }
+            }
+
+            if (row.size == 1) {
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
         Spacer(Modifier.height(14.dp))
     }
 }
 
-/* ===========================================================
- *  Preview
- * =========================================================== */
 @Preview(
     showBackground = false,
     widthDp = 393,
     heightDp = 852,
-    name = "PlanSelect – Theme BG"
+    name = "PlanSelect"
 )
 @Composable
 private fun PlanSelectScreenPreview() {
     val dummy = PlanUiState(
+        providerId = "NETFLIX",
         ottName = "넷플릭스",
-        plans = listOf("프리미엄", "스탠다드", "베이식", "광고형 스탠다드"),
-        selectedPlan = "프리미엄"
+        plans = listOf(
+            Plan(
+                id = "netflix-premium",
+                name = "프리미엄",
+                quality = "가장 좋음",
+                resolution = "4K + HDR",
+                maxScreens = 6,
+                monthlyPrice = Money(17000)
+            ),
+            Plan(
+                id = "netflix-standard",
+                name = "스탠다드",
+                quality = "좋음",
+                resolution = "1080p",
+                maxScreens = 4,
+                monthlyPrice = Money(13500)
+            )
+        ),
+        selectedPlanId = "netflix-premium",
+        logoRes = R.drawable.ic_logo_netflix
     )
 
     OttogetherTheme {
@@ -388,10 +441,9 @@ private fun PlanSelectScreenPreview() {
             PlanSelectContent(
                 ui = dummy,
                 onBack = {},
-                onSelect = {},
-                onShareMine = {},
-                onLeader = {},
-                onUseAsLeader = {}
+                onSelectPlan = {},
+                onHost = {},
+                onMember = {}
             )
         }
     }

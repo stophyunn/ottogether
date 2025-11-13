@@ -3,8 +3,8 @@ package com.example.ottogether
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.ottogether.navigation.AppNavHost
 import com.example.ottogether.ui.theme.OttogetherTheme
@@ -17,9 +17,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             OttogetherTheme {
                 val navController = rememberNavController()
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    AppNavHost(navController = navController)
-                }
+                val sessionViewModel: AppSessionViewModel = hiltViewModel()
+                val sessionState = sessionViewModel.state.collectAsState()
+
+                AppNavHost(
+                    navController = navController,
+                    sessionState = sessionState.value,
+                    sessionViewModel = sessionViewModel
+                )
             }
         }
     }

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +39,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,15 +56,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.ottogether.R
+import com.example.ottogether.core.model.Subscription
+import java.time.LocalDate
 import java.util.Calendar
 import java.util.Locale
 
 data class SimpleDate(val year: Int, val month: Int, val day: Int)
-
-private fun today(): SimpleDate {
-    val c = Calendar.getInstance()
-    return SimpleDate(c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH))
-}
 
 private fun daysInMonth(year: Int, month: Int): Int {
     val c = Calendar.getInstance()
@@ -86,22 +85,39 @@ private fun prevMonth(year: Int, month: Int): Pair<Int, Int> =
 private fun nextMonth(year: Int, month: Int): Pair<Int, Int> =
     if (month == 12) (year + 1) to 1 else year to (month + 1)
 
+private fun LocalDate.toSimpleDate() = SimpleDate(year, monthValue, dayOfMonth)
+
+
 private val MONTH_LABELS = arrayOf(
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
 )
 
+private val Orange = Color(0xFFFF7A2F)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
     onBack: () -> Unit = {},
-    events: Map<Triple<Int, Int, Int>, Int> = emptyMap()
+    subscriptions: List<Subscription> = emptyList(),
+    providerName: (Subscription) -> String = { it.provider.name },
+    selectedDate: LocalDate = LocalDate.now(),
+    onDateSelected: (SimpleDate) -> Unit = {},
+    bottomBar: @Composable () -> Unit = {}
 ) {
-    val t = remember { today() }
-    var year by remember { mutableStateOf(t.year) }
-    var month by remember { mutableStateOf(t.month) }
-    var selected by remember { mutableStateOf(SimpleDate(t.year, t.month, t.day)) }
+    val eventsByDate = remember(subscriptions) {
+        subscriptions.groupBy { it.billing.nextBillingDate.toSimpleDate() }
+    }
+    var year by remember { mutableStateOf(selectedDate.year) }
+    var month by remember { mutableStateOf(selectedDate.monthValue) }
+    var selected by remember { mutableStateOf(selectedDate.toSimpleDate()) }
     var showPicker by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selectedDate) {
+        selected = selectedDate.toSimpleDate()
+        year = selected.year
+        month = selected.month
+    }
 
     Scaffold(
         containerColor = Color(0xFFF6F6FB),
@@ -124,7 +140,8 @@ fun CalendarScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF6F6FB))
             )
-        }
+        },
+        bottomBar = bottomBar
     ) { p ->
         Column(
             modifier = Modifier
@@ -185,11 +202,22 @@ fun CalendarScreen(
                         year = year,
                         month = month,
                         selected = selected,
-                        events = events,
-                        onSelect = { selected = it }
+                        eventCounts = eventsByDate.mapValues { it.value.size },
+                        onSelect = {
+                            selected = it
+                            onDateSelected(it)
+                        }
                     )
                 }
             }
+
+            val dayEvents = eventsByDate[selected].orEmpty()
+            Spacer(Modifier.height(16.dp))
+            BillingEventList(
+                events = dayEvents,
+                providerName = providerName,
+                selectedDate = selected
+            )
 
             if (showPicker) {
                 MonthYearPickerDialog(
@@ -228,7 +256,7 @@ private fun DayGrid(
     year: Int,
     month: Int,
     selected: SimpleDate,
-    events: Map<Triple<Int, Int, Int>, Int>,
+    eventCounts: Map<SimpleDate, Int>,
     onSelect: (SimpleDate) -> Unit
 ) {
     val firstIdx = firstWeekdayIndex(year, month)
@@ -255,6 +283,7 @@ private fun DayGrid(
             val inMonth = (date.month == month && date.year == year)
             val isSelected = (date == selected)
             val dayColor = if (!inMonth) Color.LightGray else Color(0xFF222222)
+            val count = eventCounts[date] ?: 0
 
             Box(
                 modifier = Modifier
@@ -278,11 +307,62 @@ private fun DayGrid(
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         textAlign = TextAlign.Center
                     )
-                    events[Triple(date.year, date.month, date.day)]?.let { res ->
-                        Icon(
-                            painter = painterResource(id = res),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                    if (count > 0 && inMonth) {
+                        Text(
+                            text = if (count == 1) "•" else "+$count",
+                            color = Orange,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BillingEventList(
+    events: List<Subscription>,
+    providerName: (Subscription) -> String,
+    selectedDate: SimpleDate
+) {
+    val label = "${selectedDate.month}월 ${selectedDate.day}일 결제 예정"
+    Surface(
+        color = Color.White,
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(label, fontWeight = FontWeight.Bold)
+            if (events.isEmpty()) {
+                Text("해당 날짜에는 결제 일정이 없어요.", color = Color(0xFF6F7682))
+            } else {
+                events.forEach { sub ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = "${providerName(sub)} | ${sub.plan.name}",
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "파티원 ${sub.members.size + 1}명 · ${sub.plan.sharedMonthlyPrice}",
+                                color = Color(0xFF6F7682),
+                                fontSize = 12.sp
+                            )
+                        }
+                        Text(
+                            text = "D-${sub.billing.cycleDay}",
+                            color = Orange,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -314,10 +394,7 @@ fun MonthYearPickerDialog(
 @Composable
 fun CalendarScreenPreview() {
     CalendarScreen(
-        events = mapOf(
-            Triple(2025, 10, 22) to R.drawable.ic_logo_coupang,
-            Triple(2025, 10, 31) to R.drawable.ic_logo_netflix
-        )
+        subscriptions = emptyList()
     )
 }
 
@@ -427,9 +504,15 @@ private fun MonthYearPickerDialogContent(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = onDismiss) { Text("취소") }
+                TextButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF6F7682))
+                ) { Text("취소") }
                 Spacer(Modifier.width(8.dp))
-                Button(onClick = { onConfirm(selYear, selMonth) }) {
+                Button(
+                    onClick = { onConfirm(selYear, selMonth) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Orange, contentColor = Color.White)
+                ) {
                     Text("확인")
                 }
             }
