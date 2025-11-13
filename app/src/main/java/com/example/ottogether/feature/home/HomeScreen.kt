@@ -3,6 +3,7 @@ package com.example.ottogether.feature.home
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -63,7 +64,7 @@ fun HomeScreen(
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            HomeGreeting(userName)
+            HomeLogoHeader()
 
             SubscriptionSummary(
                 subscriptions = subscriptions,
@@ -92,35 +93,18 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeGreeting(userName: String?) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
-        shadowElevation = 2.dp,
-        shape = MaterialTheme.shapes.large
+private fun HomeLogoHeader() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.profile),
-                contentDescription = null,
-                modifier = Modifier.size(56.dp)
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = userName?.let { "${it}님 안녕하세요" } ?: "환영합니다!",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-                Text(
-                    text = "파티를 열고 함께 나눠보세요",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF6F7682)
-                )
-            }
-        }
+        Image(
+            painter = painterResource(id = R.drawable.ic_logo_ottogether),
+            contentDescription = "오티투게더 로고",
+            modifier = Modifier.size(width = 200.dp, height = 60.dp)
+        )
     }
 }
 

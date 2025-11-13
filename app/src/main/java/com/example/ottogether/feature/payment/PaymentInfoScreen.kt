@@ -25,21 +25,34 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ottogether.core.model.AuthResult
+import kotlinx.coroutines.launch
 import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
 import com.example.ottogether.ui.theme.PreviewContainer
@@ -56,8 +69,13 @@ fun PaymentInfoScreen(
     plan: String,
     logoRes: Int,
     onBack: () -> Unit = {},
+    onJoinParty: suspend (String) -> AuthResult = { AuthResult(false) },
     onPayDone: () -> Unit = {}
 ) {
+    var inviteCode by rememberSaveable { mutableStateOf("") }
+    var helper by rememberSaveable { mutableStateOf<String?>(null) }
+    var helperColor by remember { mutableStateOf(Color(0xFFD32F2F)) }
+    val scope = rememberCoroutineScope()
     Scaffold(
         containerColor = BgSoft,
         topBar = {
@@ -134,6 +152,23 @@ fun PaymentInfoScreen(
                 PartyGrid()
             }
 
+            InviteLinkInfo(
+                inviteCode = inviteCode,
+                helper = helper,
+                helperColor = helperColor,
+                onValueChange = { inviteCode = it },
+                onJoin = {
+                    scope.launch {
+                        val result = onJoinParty(inviteCode)
+                        helperColor = if (result.success) Color(0xFF1B873C) else Color(0xFFD32F2F)
+                        helper = result.message
+                        if (result.success) {
+                            inviteCode = ""
+                        }
+                    }
+                }
+            )
+
             // 결제일 / 다음 결제일
             AppCard(padded = false) {
                 DatePanel(
@@ -200,6 +235,64 @@ private fun PartyCell(name: String, modifier: Modifier = Modifier) {
             Spacer(Modifier.width(8.dp))
             // ✅ 크라운 완전 제거
             Text(text = name, fontSize = 14.sp)
+        }
+    }
+}
+
+@Composable
+private fun InviteLinkInfo(
+    inviteCode: String,
+    helper: String?,
+    helperColor: Color,
+    onValueChange: (String) -> Unit,
+    onJoin: () -> Unit
+) {
+    val clipboard = LocalClipboardManager.current
+    AppCard {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                "파티방 주소로 참여하기",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+            OutlinedTextField(
+                value = inviteCode,
+                onValueChange = onValueChange,
+                placeholder = {
+                    Text(
+                        "https://ottogether.app/party/ABCD",
+                        color = TextGray.copy(alpha = 0.6f)
+                    )
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = {
+                        clipboard.getText()?.text?.let(onValueChange)
+                    }
+                ) {
+                    Text("붙여넣기", color = Orange, fontSize = 13.sp)
+                }
+                Button(
+                    onClick = onJoin,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Orange,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("파티방 참여하기", fontWeight = FontWeight.SemiBold)
+                }
+            }
+            helper?.let {
+                Text(it, color = helperColor, fontSize = 12.sp)
+            }
         }
     }
 }
