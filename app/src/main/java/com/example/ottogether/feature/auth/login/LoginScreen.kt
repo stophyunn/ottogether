@@ -47,7 +47,6 @@ fun LoginScreen(
     onFindEmailClick: () -> Unit = {},
     onFindPasswordClick: () -> Unit = {},
     onLogin: (String, String) -> AuthResult = { _, _ -> AuthResult(false) },
-    onDemoLogin: (() -> AuthResult)? = null,
     onLoginSuccess: () -> Unit = {},
 ) {
     var email by rememberSaveable { mutableStateOf("") }
@@ -214,34 +213,32 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(12.dp))
 
-                    onDemoLogin?.let { loginDemo ->
-                        Button(
-                            onClick = {
-                                val result = loginDemo()
-                                if (result.success) {
-                                    helper = null
-                                    onLoginSuccess()
-                                } else {
-                                    helper = result.message ?: "테스트 계정으로 로그인할 수 없어요"
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = BrandOrange
-                            ),
-                            border = BorderStroke(1.dp, BrandOrange)
-                        ) {
-                            Text(
-                                text = "테스트 계정으로 로그인",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = BrandOrange
-                            )
-                        }
+                    Button(
+                        onClick = {
+                            val result = onLoginWithTestAccount()
+                            if (result.success) {
+                                helper = null
+                                onLoginSuccess()
+                            } else {
+                                helper = result.message ?: "테스트 계정으로 로그인할 수 없어요"
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = BrandOrange
+                        ),
+                        border = BorderStroke(1.dp, BrandOrange)
+                    ) {
+                        Text(
+                            text = "테스트 계정으로 로그인",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandOrange
+                        )
                     }
                 }
             }
