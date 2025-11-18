@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ottogether.R
 import com.example.ottogether.core.model.AuthResult
+import kotlinx.coroutines.launch
 
 private val BrandOrange = Color(0xFFFF7A2F)
 private val GrayText    = Color(0xFF6F7682)
@@ -47,15 +49,16 @@ fun LoginScreen(
     onSignupClick: () -> Unit = {},
     onFindEmailClick: () -> Unit = {},
     onFindPasswordClick: () -> Unit = {},
-    onLogin: (String, String) -> AuthResult = { _, _ -> AuthResult(false) },
+    onLogin: suspend (String, String) -> AuthResult = { _, _ -> AuthResult(false) },
     onLoginSuccess: () -> Unit = {},
     // ✅ 테스트 계정 로그인 콜백 (선택 사항)
-    onLoginWithTestAccount: (() -> AuthResult)? = null,
+    onLoginWithTestAccount: (suspend () -> AuthResult)? = null,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var helper by rememberSaveable { mutableStateOf<String?>(null) }
     val canSubmit = email.isNotBlank() && password.isNotBlank()
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -185,12 +188,14 @@ fun LoginScreen(
 
                     Button(
                         onClick = {
-                            val result = onLogin(email.trim(), password)
-                            if (result.success) {
-                                helper = null
-                                onLoginSuccess()
-                            } else {
-                                helper = result.message ?: "로그인에 실패했어요"
+                            scope.launch {
+                                val result = onLogin(email.trim(), password)
+                                if (result.success) {
+                                    helper = null
+                                    onLoginSuccess()
+                                } else {
+                                    helper = result.message ?: "로그인에 실패했어요"
+                                }
                             }
                         },
                         enabled = canSubmit,
@@ -213,12 +218,14 @@ fun LoginScreen(
 
                         Button(
                             onClick = {
-                                val result = loginWithTestAccount()
-                                if (result.success) {
-                                    helper = null
-                                    onLoginSuccess()
-                                } else {
-                                    helper = result.message ?: "테스트 계정으로 로그인할 수 없어요"
+                                scope.launch {
+                                    val result = loginWithTestAccount()
+                                    if (result.success) {
+                                        helper = null
+                                        onLoginSuccess()
+                                    } else {
+                                        helper = result.message ?: "테스트 계정으로 로그인할 수 없어요"
+                                    }
                                 }
                             },
                             modifier = Modifier

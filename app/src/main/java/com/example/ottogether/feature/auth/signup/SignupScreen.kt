@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ottogether.R
 import com.example.ottogether.core.model.AuthResult
+import kotlinx.coroutines.launch
 
 private val BrandOrange = Color(0xFFFF7A2F)
 private val GrayText    = Color(0xFF6F7682)
@@ -47,7 +49,7 @@ private val PlaceholderColor = Color(0xFFC9CFDA)
 @Composable
 fun SignupScreen(
     onLoginClick: () -> Unit = {},
-    onSubmit: (name: String, email: String, password: String, phone: String?) -> AuthResult =
+    onSubmit: suspend (name: String, email: String, password: String, phone: String?) -> AuthResult =
         { _, _, _, _ -> AuthResult(false) }
 ) {
     var email by rememberSaveable { mutableStateOf("") }
@@ -59,6 +61,7 @@ fun SignupScreen(
     var helperColor by remember { mutableStateOf(Color(0xFFD32F2F)) }
     val canSubmit = email.isNotBlank() && password.isNotBlank() &&
         (lastName.isNotBlank() || firstName.isNotBlank())
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -188,16 +191,18 @@ fun SignupScreen(
 
                     Button(
                         onClick = {
-                            val fullName = listOf(lastName.trim(), firstName.trim())
-                                .filter { it.isNotBlank() }
-                                .joinToString(" ")
-                            val result = onSubmit(fullName, email.trim(), password, phone)
-                            if (result.success) {
-                                helperColor = BrandOrange
-                                helper = "회원가입이 완료되었어요!"
-                            } else {
-                                helperColor = Color(0xFFD32F2F)
-                                helper = result.message ?: "회원가입에 실패했어요"
+                            scope.launch {
+                                val fullName = listOf(lastName.trim(), firstName.trim())
+                                    .filter { it.isNotBlank() }
+                                    .joinToString(" ")
+                                val result = onSubmit(fullName, email.trim(), password, phone)
+                                if (result.success) {
+                                    helperColor = BrandOrange
+                                    helper = "회원가입이 완료되었어요!"
+                                } else {
+                                    helperColor = Color(0xFFD32F2F)
+                                    helper = result.message ?: "회원가입에 실패했어요"
+                                }
                             }
                         },
                         enabled = canSubmit,
