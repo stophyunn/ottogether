@@ -78,7 +78,6 @@ fun AppNavHost(
                 onSubmit = { name, email, password, phone ->
                     val result = sessionViewModel.registerUser(name, email, password, phone)
                     if (result.success) {
-                        sessionViewModel.loginWithCredentials(email, password)
                         navController.navigate(Route.Home.path) {
                             popUpTo(Route.Login.path) { inclusive = true }
                             launchSingleTop = true

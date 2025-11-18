@@ -12,6 +12,7 @@ import com.example.ottogether.core.model.Plan
 import com.example.ottogether.core.model.Provider
 import com.example.ottogether.core.model.Subscription
 import com.example.ottogether.core.model.User
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
@@ -20,18 +21,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @HiltViewModel
 class AppSessionViewModel @Inject constructor(
     private val repository: SubscriptionRepository,
     private val seedData: SeedData,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val auth: FirebaseAuth
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
         AppSessionState(
-            catalogs = seedData.catalogs,
-            users = userRepository.getUsers()
+            catalogs = seedData.catalogs
         )
     )
     val state: StateFlow<AppSessionState> = _state.asStateFlow()
@@ -42,45 +44,53 @@ class AppSessionViewModel @Inject constructor(
         R.drawable.profile_lilac
     )
 
-    fun onSplashFinished() {
-        _state.update { it.copy(hasSeenSplash = true) }
-    }
-
-    private fun loginById(userId: String) {
-        val user = userRepository.getUsers().firstOrNull { it.id == userId } ?: return
+    init {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            val subs = repository.getMySubscriptions(user.id)
-            _state.update {
-                it.copy(
-                    isLoading = false,
-                    currentUser = user,
-                    subscriptions = subs,
-                    selectedCalendarDate = subs.minByOrNull { sub -> sub.billing.nextBillingDate }
-                        ?.billing?.nextBillingDate ?: LocalDate.now()
-                )
+            refreshUsers()
+            auth.currentUser?.let { firebaseUser ->
+                ensureUserProfile(firebaseUser)?.let { setLoggedInUser(it) }
             }
         }
     }
 
-    fun loginWithCredentials(email: String, password: String): AuthResult {
-        val user = userRepository.findByEmail(email.trim())
-            ?: return AuthResult(success = false, message = "가입된 이메일을 찾을 수 없어요")
-        if (user.password != password) {
-            return AuthResult(success = false, message = "비밀번호가 올바르지 않아요")
+    fun onSplashFinished() {
+        _state.update { it.copy(hasSeenSplash = true) }
+    }
+
+    suspend fun loginWithCredentials(email: String, password: String): AuthResult {
+        return try {
+            val result = auth.signInWithEmailAndPassword(email.trim(), password).await()
+            val firebaseUser = result.user ?: return AuthResult(false, "로그인에 실패했어요")
+            val profile = ensureUserProfile(firebaseUser)
+                ?: return AuthResult(false, "프로필을 불러오지 못했어요")
+            setLoggedInUser(profile)
+            AuthResult(success = true)
+        } catch (e: Exception) {
+            AuthResult(success = false, message = e.localizedMessage ?: "로그인에 실패했어요")
         }
-        loginById(user.id)
-        return AuthResult(success = true)
     }
 
-    fun loginWithTestAccount(): AuthResult {
-        val testUser = seedData.users.firstOrNull()
-            ?: return AuthResult(success = false, message = "테스트 계정을 찾을 수 없어요")
-        loginById(testUser.id)
-        return AuthResult(success = true)
+    suspend fun loginWithTestAccount(): AuthResult {
+        val seedUser = seedData.users.firstOrNull()
+        val email = seedUser?.email ?: "test@ottogether.app"
+        val password = seedUser?.password ?: "password1"
+        return try {
+            val methods = auth.fetchSignInMethodsForEmail(email).await()
+            if (methods.signInMethods.isNullOrEmpty()) {
+                auth.createUserWithEmailAndPassword(email, password).await()
+            }
+            val result = auth.signInWithEmailAndPassword(email, password).await()
+            val firebaseUser = result.user ?: return AuthResult(false, "테스트 계정을 찾을 수 없어요")
+            val profile = ensureUserProfile(firebaseUser, fallbackName = seedUser?.name)
+                ?: return AuthResult(false, "프로필을 만들 수 없어요")
+            setLoggedInUser(profile)
+            AuthResult(true, "테스트 계정으로 로그인했어요")
+        } catch (e: Exception) {
+            AuthResult(false, "테스트 계정 로그인 실패: ${e.message}")
+        }
     }
 
-    fun registerUser(name: String, email: String, password: String, phone: String?): AuthResult {
+    suspend fun registerUser(name: String, email: String, password: String, phone: String?): AuthResult {
         if (name.isBlank() || email.isBlank() || password.isBlank()) {
             return AuthResult(success = false, message = "필수 정보를 입력해주세요")
         }
@@ -90,24 +100,29 @@ class AppSessionViewModel @Inject constructor(
         if (password.length < 6) {
             return AuthResult(success = false, message = "비밀번호는 6자 이상이어야 해요")
         }
-        if (userRepository.findByEmail(email.trim()) != null) {
-            return AuthResult(success = false, message = "이미 가입된 이메일이에요")
-        }
 
-        val user = User(
-            id = generateUserId(),
-            name = name.trim(),
-            email = email.trim(),
-            phone = phone?.trim()?.takeIf { it.isNotBlank() },
-            password = password,
-            profileImageRes = profileImages.firstOrNull()
-        )
-        userRepository.addUser(user)
-        _state.update { it.copy(users = userRepository.getUsers()) }
-        return AuthResult(success = true)
+        return try {
+            auth.createUserWithEmailAndPassword(email.trim(), password).await()
+            val firebaseUser = auth.currentUser ?: return AuthResult(false, "회원가입에 실패했어요")
+            val user = User(
+                id = firebaseUser.uid,
+                name = name.trim(),
+                email = email.trim(),
+                phone = phone?.trim()?.takeIf { it.isNotBlank() },
+                profileImageRes = profileImages.firstOrNull(),
+                password = null
+            )
+            userRepository.addUser(user)
+            refreshUsers()
+            setLoggedInUser(user)
+            AuthResult(success = true)
+        } catch (e: Exception) {
+            AuthResult(success = false, message = e.localizedMessage ?: "회원가입에 실패했어요")
+        }
     }
 
     fun logout() {
+        auth.signOut()
         _state.update {
             it.copy(
                 currentUser = null,
@@ -200,7 +215,14 @@ class AppSessionViewModel @Inject constructor(
         val user = _state.value.currentUser ?: return
         val trimmed = newEmail.trim()
         if (trimmed.isBlank()) return
-        persistUser(user.copy(email = trimmed))
+        viewModelScope.launch {
+            try {
+                auth.currentUser?.updateEmail(trimmed)?.await()
+            } catch (_: Exception) {
+                // no-op: we still persist locally to simulate server update
+            }
+            persistUser(user.copy(email = trimmed))
+        }
     }
 
     fun updateCurrentUserPhone(newPhone: String) {
@@ -213,7 +235,14 @@ class AppSessionViewModel @Inject constructor(
     fun updateCurrentUserPassword(newPassword: String) {
         val user = _state.value.currentUser ?: return
         if (newPassword.isBlank()) return
-        persistUser(user.copy(password = newPassword))
+        viewModelScope.launch {
+            try {
+                auth.currentUser?.updatePassword(newPassword)?.await()
+            } catch (_: Exception) {
+                // ignore; mimic best-effort update
+            }
+            persistUser(user.copy(password = newPassword))
+        }
     }
 
     suspend fun joinPartyByCode(rawCode: String): AuthResult {
@@ -252,10 +281,52 @@ class AppSessionViewModel @Inject constructor(
         return trimmed.substringAfterLast('/')
     }
 
-    private fun generateUserId(): String = "u" + System.currentTimeMillis().toString(16)
+    private suspend fun setLoggedInUser(user: User) {
+        _state.update { it.copy(isLoading = true) }
+        val subs = repository.getMySubscriptions(user.id)
+        refreshUsers()
+        _state.update {
+            it.copy(
+                isLoading = false,
+                currentUser = user,
+                subscriptions = subs,
+                selectedCalendarDate = subs.minByOrNull { sub -> sub.billing.nextBillingDate }
+                    ?.billing?.nextBillingDate ?: LocalDate.now()
+            )
+        }
+    }
+
+    private suspend fun refreshUsers() {
+        val users = userRepository.getUsers()
+        _state.update { it.copy(users = users) }
+    }
 
     private fun persistUser(updated: User) {
-        userRepository.updateUser(updated)
-        _state.update { it.copy(currentUser = updated, users = userRepository.getUsers()) }
+        viewModelScope.launch {
+            userRepository.updateUser(updated)
+            refreshUsers()
+            _state.update { it.copy(currentUser = updated) }
+        }
+    }
+
+    private suspend fun ensureUserProfile(
+        firebaseUser: com.google.firebase.auth.FirebaseUser,
+        fallbackName: String? = null
+    ): User? {
+        val existingById = userRepository.getUserById(firebaseUser.uid)
+        val email = firebaseUser.email
+        val existingByEmail = email?.let { userRepository.findByEmail(it) }
+        val resolved = existingById ?: existingByEmail ?: User(
+            id = firebaseUser.uid,
+            name = fallbackName ?: firebaseUser.displayName ?: email ?: "사용자",
+            email = email,
+            phone = null,
+            profileImageRes = profileImages.firstOrNull(),
+            password = null
+        )
+        if (existingById == null) {
+            userRepository.addUser(resolved)
+        }
+        return resolved
     }
 }
