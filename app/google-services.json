@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "472915162654",
+    "project_id": "ottogether-3d35e",
+    "storage_bucket": "ottogether-3d35e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:472915162654:android:fd957e3a5bf292711c200f",
+        "android_client_info": {
+          "package_name": "com.example.ottogether"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBcoXKGmn0poi9Hmv9bneQ2XE9BnBrmboA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

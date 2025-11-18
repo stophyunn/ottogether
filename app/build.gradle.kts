@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -90,7 +92,17 @@ dependencies {
     //지피티로 추가한것들
     implementation("androidx.compose.material3:material3")
     implementation("androidx.navigation:navigation-compose:2.8.3")
+// Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
 
+
+    // TODO: Add the dependencies for Firebase products you want to use
+    // When using the BoM, don't specify versions in Firebase dependencies
+    implementation("com.google.firebase:firebase-analytics")
+
+
+    // Add the dependencies for any other desired Firebase products
+    // https://firebase.google.com/docs/android/setup#available-libraries
 }
 kotlin {
     jvmToolchain(17)
