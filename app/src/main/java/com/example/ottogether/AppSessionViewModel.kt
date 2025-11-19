@@ -86,8 +86,24 @@ class AppSessionViewModel @Inject constructor(
             setLoggedInUser(profile)
             AuthResult(true, "테스트 계정으로 로그인했어요")
         } catch (e: Exception) {
+            if (e.message?.contains("CONFIGURATION_NOT_FOUND", ignoreCase = true) == true) {
+                return loginWithSeedDataFallback(seedUser)
+            }
             AuthResult(false, "테스트 계정 로그인 실패: ${e.message}")
         }
+    }
+
+    private suspend fun loginWithSeedDataFallback(seedUser: User?): AuthResult {
+        val fallbackUser = seedUser ?: User(
+            id = "seed-test-user",
+            name = "테스트 사용자",
+            email = null,
+            phone = null,
+            profileImageRes = profileImages.firstOrNull(),
+            password = null
+        )
+        setLoggedInUserFromSeed(fallbackUser)
+        return AuthResult(true, "테스트 계정을 로컬 데이터로 불러왔어요")
     }
 
     suspend fun registerUser(name: String, email: String, password: String, phone: String?): AuthResult {
@@ -291,6 +307,25 @@ class AppSessionViewModel @Inject constructor(
                 currentUser = user,
                 subscriptions = subs,
                 selectedCalendarDate = subs.minByOrNull { sub -> sub.billing.nextBillingDate }
+                    ?.billing?.nextBillingDate ?: LocalDate.now()
+            )
+        }
+    }
+
+    private fun setLoggedInUserFromSeed(user: User) {
+        val subscriptions = seedData.subscriptions.filter { subscription ->
+            subscription.ownerUserId == user.id || user.id in subscription.members
+        }
+        val users = seedData.users.let { existing ->
+            if (existing.any { it.id == user.id }) existing else existing + user
+        }
+        _state.update {
+            it.copy(
+                isLoading = false,
+                currentUser = user,
+                users = users,
+                subscriptions = subscriptions,
+                selectedCalendarDate = subscriptions.minByOrNull { sub -> sub.billing.nextBillingDate }
                     ?.billing?.nextBillingDate ?: LocalDate.now()
             )
         }

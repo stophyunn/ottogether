@@ -42,18 +42,29 @@ fun AppNavHost(
         modifier = modifier
     ) {
         composable(Route.Splash.path) {
-            SplashScreen(onTimeout = {
-                sessionViewModel.onSplashFinished()
-                if (sessionState.isLoggedIn) {
-                    navController.navigate(Route.Home.path) {
-                        popUpTo(Route.Splash.path) { inclusive = true }
+            SplashScreen(
+                onTimeout = {
+                    sessionViewModel.onSplashFinished()
+                    if (sessionState.isLoggedIn) {
+                        navController.navigate(Route.Home.path) {
+                            popUpTo(Route.Splash.path) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Route.Login.path) {
+                            popUpTo(Route.Splash.path) { inclusive = true }
+                        }
                     }
-                } else {
-                    navController.navigate(Route.Login.path) {
-                        popUpTo(Route.Splash.path) { inclusive = true }
+                },
+                onQuickLogin = {
+                    val result = sessionViewModel.loginWithTestAccount()
+                    if (result.success) {
+                        navController.navigate(Route.Home.path) {
+                            popUpTo(Route.Splash.path) { inclusive = true }
+                        }
                     }
+                    result
                 }
-            })
+            )
         }
 
         composable(Route.Login.path) {
