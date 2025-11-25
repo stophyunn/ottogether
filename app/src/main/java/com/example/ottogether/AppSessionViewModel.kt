@@ -192,7 +192,7 @@ class AppSessionViewModel @Inject constructor(
         }
     }
 
-    fun hostNewSubscription(
+    suspend fun hostNewSubscription(
         provider: Provider,
         plan: Plan,
         loginId: String,
@@ -201,19 +201,17 @@ class AppSessionViewModel @Inject constructor(
         firstBillingDate: LocalDate
     ) {
         val user = _state.value.currentUser ?: return
-        viewModelScope.launch {
-            repository.createHostedSubscription(
-                ownerId = user.id,
-                provider = provider,
-                plan = plan,
-                accountMasked = account.takeIf { it.isNotBlank() },
-                loginId = loginId.takeIf { it.isNotBlank() },
-                passwordMasked = password.takeIf { it.isNotBlank() },
-                firstBillingDate = firstBillingDate
-            )
-            val updated = repository.getMySubscriptions(user.id)
-            _state.update { it.copy(subscriptions = updated) }
-        }
+        repository.createHostedSubscription(
+            ownerId = user.id,
+            provider = provider,
+            plan = plan,
+            accountMasked = account.takeIf { it.isNotBlank() },
+            loginId = loginId.takeIf { it.isNotBlank() },
+            passwordMasked = password.takeIf { it.isNotBlank() },
+            firstBillingDate = firstBillingDate
+        )
+        val updated = repository.getMySubscriptions(user.id)
+        _state.update { it.copy(subscriptions = updated) }
     }
 
     fun attachSubscription(subscription: Subscription) {
@@ -229,7 +227,12 @@ class AppSessionViewModel @Inject constructor(
         val options = profileImages.ifEmpty { listOf(R.drawable.profile) }
         val currentIndex = options.indexOf(user.profileImageRes).takeIf { it >= 0 } ?: 0
         val nextRes = options[(currentIndex + 1) % options.size]
-        persistUser(user.copy(profileImageRes = nextRes))
+        persistUser(user.copy(profileImageRes = nextRes, profileImageUri = null))
+    }
+
+    fun updateProfileImage(uri: String?) {
+        val user = _state.value.currentUser ?: return
+        persistUser(user.copy(profileImageUri = uri, profileImageRes = null))
     }
 
     fun updateCurrentUserEmail(newEmail: String) {

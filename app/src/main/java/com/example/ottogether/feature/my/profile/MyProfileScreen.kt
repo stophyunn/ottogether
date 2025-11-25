@@ -35,6 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
 import com.example.ottogether.core.model.Subscription
@@ -48,7 +49,8 @@ private val GrayText = Color(0xFF6F7682)
 @Composable
 fun MyProfileScreen(
     userName: String?,
-    profileImageRes: Int?,
+    profileImageRes: Int? = null,
+    profileImageUri: String? = null,
     subscriptions: List<Subscription>,
     providerName: (Subscription) -> String = { it.provider.name },
     onBack: () -> Unit = {},
@@ -100,12 +102,12 @@ fun MyProfileScreen(
                         .clip(RoundedCornerShape(36.dp))
                         .background(Color(0xFFEDEFF3))
                 ) {
-                    Image(
-                        painter = painterResource(id = profileImageRes ?: R.drawable.profile),
+                    AsyncImage(
+                        model = profileImageUri ?: profileImageRes ?: R.drawable.profile,
                         contentDescription = "프로필",
                         modifier = Modifier
                             .matchParentSize()
-                            .clip(RoundedCornerShape(36.dp))
+                            .clip(RoundedCornerShape(36.dp)),
                     )
                 }
                 Spacer(Modifier.width(16.dp))

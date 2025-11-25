@@ -57,13 +57,15 @@ fun MySubscriptionsScreen(
     currentUserId: String?,
     onBack: () -> Unit,
     onItem: (Subscription) -> Unit,
-    providerName: (Subscription) -> String = { it.provider.name }
+    providerName: (Subscription) -> String = { it.provider.name },
+    bottomBar: @Composable () -> Unit = {}
 ) {
     val formatter = DateTimeFormatter.ofPattern("MM/dd")
 
     Scaffold(
         containerColor = BgSoft,
-        topBar = { MySubTopBar(onBack) }
+        topBar = { MySubTopBar(onBack) },
+        bottomBar = bottomBar
     ) { padding ->
         LazyColumn(
             modifier = Modifier

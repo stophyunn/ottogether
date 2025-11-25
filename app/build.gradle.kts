@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.foundation)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -119,6 +120,8 @@ dependencies {
 
     // Google GenAI SDK
     implementation("com.google.genai:google-genai:1.4.1")
+
+    implementation(libs.coil.compose)
 
 
 

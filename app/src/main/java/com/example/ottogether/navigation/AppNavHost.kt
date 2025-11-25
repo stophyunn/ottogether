@@ -134,6 +134,7 @@ fun AppNavHost(
             MyProfileScreen(
                 userName = user?.name,
                 profileImageRes = user?.profileImageRes,
+                profileImageUri = user?.profileImageUri,
                 subscriptions = sessionState.subscriptions,
                 providerName = { sub ->
                     sessionState.catalogs.firstOrNull { it.provider == sub.provider }?.displayName
@@ -156,8 +157,10 @@ fun AppNavHost(
                 phone = sessionState.currentUser?.phone,
                 password = sessionState.currentUser?.password,
                 profileImageRes = sessionState.currentUser?.profileImageRes,
+                profileImageUri = sessionState.currentUser?.profileImageUri,
                 onBack = { navController.popBackStack() },
                 onChangeProfileImage = sessionViewModel::cycleProfileImage,
+                onProfileImageSelected = { uri -> sessionViewModel.updateProfileImage(uri) },
                 onUpdateEmail = sessionViewModel::updateCurrentUserEmail,
                 onUpdatePhone = sessionViewModel::updateCurrentUserPhone,
                 onUpdatePassword = sessionViewModel::updateCurrentUserPassword,
@@ -185,7 +188,8 @@ fun AppNavHost(
                 providerName = { sub ->
                     sessionState.catalogs.firstOrNull { it.provider == sub.provider }?.displayName
                         ?: sub.provider.name
-                }
+                },
+                bottomBar = { MainBottomBar(navController, currentRoute) }
             )
         }
 
@@ -248,6 +252,9 @@ fun AppNavHost(
                             account = form.account,
                             firstBillingDate = form.firstBillingDate
                         )
+                        true
+                    },
+                    onOpenMySubscriptions = {
                         navController.navigate(Route.MySubscriptions.path) {
                             launchSingleTop = true
                         }
