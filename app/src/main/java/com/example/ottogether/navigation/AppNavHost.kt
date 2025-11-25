@@ -54,15 +54,6 @@ fun AppNavHost(
                             popUpTo(Route.Splash.path) { inclusive = true }
                         }
                     }
-                },
-                onQuickLogin = {
-                    val result = sessionViewModel.loginWithTestAccount()
-                    if (result.success) {
-                        navController.navigate(Route.Home.path) {
-                            popUpTo(Route.Splash.path) { inclusive = true }
-                        }
-                    }
-                    result
                 }
             )
         }

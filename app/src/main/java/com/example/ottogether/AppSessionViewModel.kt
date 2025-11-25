@@ -13,6 +13,7 @@ import com.example.ottogether.core.model.Provider
 import com.example.ottogether.core.model.Subscription
 import com.example.ottogether.core.model.User
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
@@ -77,7 +78,11 @@ class AppSessionViewModel @Inject constructor(
         return try {
             val methods = auth.fetchSignInMethodsForEmail(email).await()
             if (methods.signInMethods.isNullOrEmpty()) {
-                auth.createUserWithEmailAndPassword(email, password).await()
+                try {
+                    auth.createUserWithEmailAndPassword(email, password).await()
+                } catch (collision: FirebaseAuthUserCollisionException) {
+                    // Account already exists: fall back to sign-in below
+                }
             }
             val result = auth.signInWithEmailAndPassword(email, password).await()
             val firebaseUser = result.user ?: return AuthResult(false, "테스트 계정을 찾을 수 없어요")
@@ -332,7 +337,8 @@ class AppSessionViewModel @Inject constructor(
     }
 
     private suspend fun refreshUsers() {
-        val users = userRepository.getUsers()
+        val users = runCatching { userRepository.getUsers() }
+            .getOrElse { seedData.users }
         _state.update { it.copy(users = users) }
     }
 
