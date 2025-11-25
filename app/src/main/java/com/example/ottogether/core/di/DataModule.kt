@@ -2,6 +2,8 @@ package com.example.ottogether.core.di
 
 import com.example.ottogether.core.data.FirebaseUserRepository
 import com.example.ottogether.core.data.FirestoreSubscriptionRepository
+import com.example.ottogether.core.data.FirestorePartyRepository
+import com.example.ottogether.core.data.PartyRepository
 import com.example.ottogether.core.data.SubscriptionRepository
 import com.example.ottogether.core.data.UserRepository
 import com.google.firebase.auth.FirebaseAuth
@@ -22,6 +24,12 @@ abstract class DataModule {
     abstract fun bindSubscriptionRepository(
         impl: FirestoreSubscriptionRepository
     ): SubscriptionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPartyRepository(
+        impl: FirestorePartyRepository
+    ): PartyRepository
 
     @Binds
     @Singleton
