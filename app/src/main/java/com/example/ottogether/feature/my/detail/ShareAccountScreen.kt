@@ -43,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,6 +68,7 @@ import com.example.ottogether.core.util.toEpochMillis
 import com.example.ottogether.core.util.toLocalDate
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
 
 /* ---------- 토큰(이 파일에서만 사용) ---------- */
 private val BgSoft   = Color(0xFFF6F6FB)
@@ -83,16 +85,20 @@ fun ShareAccountScreen(
     plan: Plan,
     logoRes: Int,
     onBack: () -> Unit = {},
-    onRegisterPartyMatch: (ShareAccountForm) -> Unit = {}
+    onRegisterPartyMatch: suspend (ShareAccountForm) -> Boolean = { true },
+    onOpenMySubscriptions: () -> Unit = {},
 ) {
-    var loginId by rememberSaveable { mutableStateOf("song2025@sookmyung.ac.kr") }
-    var password by rememberSaveable { mutableStateOf("ottogether2024") }
+    var loginId by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
     var account by rememberSaveable { mutableStateOf("국민은행 2020-2020-2020202") }
     var editingField by remember { mutableStateOf<EditableField?>(null) }
     var editingValue by remember { mutableStateOf("") }
     var billingDate by remember { mutableStateOf(LocalDate.now().plusDays(3)) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var isRegistering by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
     val formatter = remember { DateTimeFormatter.ofPattern("MM / dd") }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         containerColor = BgSoft,
@@ -137,18 +143,27 @@ fun ShareAccountScreen(
                     // 패널 위에 올라가는 버튼
                     Button(
                         onClick = {
-                            onRegisterPartyMatch(
-                                ShareAccountForm(
-                                    loginId = loginId,
-                                    password = password,
-                                    account = account,
-                                    firstBillingDate = billingDate
+                            if (isRegistering) return@Button
+                            scope.launch {
+                                isRegistering = true
+                                val success = onRegisterPartyMatch(
+                                    ShareAccountForm(
+                                        loginId = loginId,
+                                        password = password,
+                                        account = account,
+                                        firstBillingDate = billingDate
+                                    )
                                 )
-                            )
+                                isRegistering = false
+                                if (success) {
+                                    showSuccessDialog = true
+                                }
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
+                        enabled = loginId.isNotBlank() && password.isNotBlank() && !isRegistering,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Orange,
@@ -275,6 +290,23 @@ fun ShareAccountScreen(
                     EditableField.Account -> account = newValue
                 }
                 editingField = null
+            }
+        )
+    }
+
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuccessDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSuccessDialog = false
+                    onOpenMySubscriptions()
+                }) {
+                    Text("확인", color = Orange, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Text("파티방이 정상적으로 등록되었습니다!\n파티원 결성시 구독이 시작됩니다!", fontWeight = FontWeight.SemiBold)
             }
         )
     }

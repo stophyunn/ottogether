@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -52,6 +53,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import coil.compose.AsyncImage
 import com.example.ottogether.R
 import com.example.ottogether.core.ui.BottomConfirmSheet
 
@@ -67,8 +72,10 @@ fun AccountScreen(
     phone: String? = null,
     password: String? = null,
     profileImageRes: Int? = null,
+    profileImageUri: String? = null,
     onBack: () -> Unit = {},
     onChangeProfileImage: () -> Unit = {},
+    onProfileImageSelected: (String?) -> Unit = {},
     onUpdateEmail: (String) -> Unit = {},
     onUpdatePhone: (String) -> Unit = {},
     onUpdatePassword: (String) -> Unit = {},
@@ -82,6 +89,20 @@ fun AccountScreen(
     var editingValue by remember { mutableStateOf("") }
     val maskedPassword = password?.takeIf { it.isNotBlank() }
         ?.let { "•".repeat(it.length.coerceAtMost(12)) } ?: "-"
+
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            onProfileImageSelected(uri.toString())
+        } else {
+            onChangeProfileImage()
+        }
+    }
+
+    val launchPhotoPicker = {
+        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
 
     Scaffold(
         containerColor = BgSoft,
@@ -124,14 +145,15 @@ fun AccountScreen(
                     .size(120.dp)
                     .clip(RoundedCornerShape(60.dp))
                     .background(Color(0xFFEDEFF3))
-                    .clickable(onClick = onChangeProfileImage)
+                    .clickable(onClick = launchPhotoPicker)
             ) {
-                Image(
-                    painter = painterResource(profileImageRes ?: R.drawable.profile),
+                AsyncImage(
+                    model = profileImageUri ?: profileImageRes ?: R.drawable.profile,
                     contentDescription = "프로필",
                     modifier = Modifier
                         .matchParentSize()
-                        .clip(RoundedCornerShape(60.dp))
+                        .clip(RoundedCornerShape(60.dp)),
+                    contentScale = ContentScale.Crop
                 )
                 Surface(
                     modifier = Modifier
@@ -151,7 +173,9 @@ fun AccountScreen(
                             imageVector = Icons.Filled.CameraAlt,
                             contentDescription = "프로필 변경",
                             tint = Orange,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clickable(onClick = launchPhotoPicker)
                         )
                     }
                 }
