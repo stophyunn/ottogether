@@ -13,12 +13,17 @@ android {
 
     defaultConfig {
         applicationId = "com.example.ottogether"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField(
+            type = "String",
+            name = "GEMINI_API_KEY",
+            value = "\"${project.properties["GEMINI_API_KEY"]}\""
+        )
     }
 
     buildTypes {
@@ -40,6 +45,12 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1,INDEX.LIST,DEPENDENCIES}"
+        }
     }
 }
 
@@ -111,6 +122,8 @@ dependencies {
     // 2) 개별 Firebase 모듈들 (버전 X, BOM이 알아서 맞춰줌)
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
+
+    implementation("com.google.genai:google-genai:1.4.1")
 
 }
 kotlin {

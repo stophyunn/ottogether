@@ -22,70 +22,99 @@ class FirestoreSubscriptionRepository @Inject constructor(
 
     override suspend fun getMySubscriptions(userId: String): List<Subscription> {
         ensureSeedSubscriptions()
-        val owned = collection.whereEqualTo("ownerUserId", userId).get().await()
-        val member = collection.whereArrayContains("members", userId).get().await()
-        return (owned.documents + member.documents)
-            .associateBy({ it.id }, { it.toDomain(seedData) })
-            .values
-            .filterNotNull()
-            .sortedBy { it.billing.nextBillingDate }
+        return try {
+            val owned = collection.whereEqualTo("ownerUserId", userId).get().await()
+            val member = collection.whereArrayContains("members", userId).get().await()
+            (owned.documents + member.documents)
+                .associateBy({ it.id }, { it.toDomain(seedData) })
+                .values
+                .filterNotNull()
+                .sortedBy { it.billing.nextBillingDate }
+        } catch (e: Exception) {
+            // TODO: log exception
+            emptyList()
+        }
     }
 
     override suspend fun getSubscription(id: String): Subscription {
         ensureSeedSubscriptions()
-        val snapshot = collection.document(id).get().await()
-        return snapshot.toDomain(seedData) ?: error("Subscription($id) not found")
+        return try {
+            val snapshot = collection.document(id).get().await()
+            snapshot.toDomain(seedData) ?: error("Subscription($id) not found")
+        } catch (e: Exception) {
+            // TODO: log exception
+            throw e
+        }
     }
 
     override suspend fun leaveSubscription(id: String, userId: String) {
         ensureSeedSubscriptions()
-        collection.document(id)
-            .update("members", com.google.firebase.firestore.FieldValue.arrayRemove(userId))
-            .await()
+        try {
+            collection.document(id)
+                .update("members", com.google.firebase.firestore.FieldValue.arrayRemove(userId))
+                .await()
+        } catch (e: Exception) {
+            // TODO: log exception
+        }
     }
 
     override suspend fun updateNextBillingDate(id: String, nextDate: LocalDate) {
         ensureSeedSubscriptions()
-        collection.document(id)
-            .update(
-                mapOf(
-                    "billing.cycleDay" to nextDate.dayOfMonth,
-                    "billing.nextBillingDate" to nextDate.toString()
+        try {
+            collection.document(id)
+                .update(
+                    mapOf(
+                        "billing.cycleDay" to nextDate.dayOfMonth,
+                        "billing.nextBillingDate" to nextDate.toString()
+                    )
                 )
-            )
-            .await()
+                .await()
+        } catch (e: Exception) {
+            // TODO: log exception
+        }
     }
 
     override suspend fun transferOwnership(id: String, newOwnerId: String): Subscription? {
         ensureSeedSubscriptions()
-        val docRef = collection.document(id)
-        val updated = firestore.runTransaction { tx ->
-            val snapshot = tx.get(docRef)
-            val entity = snapshot.toSubscriptionEntity() ?: return@runTransaction null
-            if (newOwnerId !in entity.members) return@runTransaction null
-            val updatedMembers = listOf(entity.ownerUserId) + entity.members.filterNot { it == newOwnerId }
-            val updatedEntity = entity.copy(ownerUserId = newOwnerId, members = updatedMembers)
-            tx.set(docRef, updatedEntity.toMap())
-            updatedEntity
-        }.await()
-        return updated?.toDomain(seedData, id)
+        return try {
+            val docRef = collection.document(id)
+            val updated = firestore.runTransaction { tx ->
+                val snapshot = tx.get(docRef)
+                val entity = snapshot.toSubscriptionEntity() ?: return@runTransaction null
+                if (newOwnerId !in entity.members) return@runTransaction null
+                val updatedMembers =
+                    listOf(entity.ownerUserId) + entity.members.filterNot { it == newOwnerId }
+                val updatedEntity = entity.copy(ownerUserId = newOwnerId, members = updatedMembers)
+                tx.set(docRef, updatedEntity.toMap())
+                updatedEntity
+            }.await()
+            updated?.toDomain(seedData, id)
+        } catch (e: Exception) {
+            // TODO: log exception
+            null
+        }
     }
 
     override suspend fun joinPartyByCode(code: String, userId: String): Subscription? {
         ensureSeedSubscriptions()
-        val docRef = collection.document(code)
-        val updated = firestore.runTransaction { tx ->
-            val snapshot = tx.get(docRef)
-            val entity = snapshot.toSubscriptionEntity() ?: return@runTransaction null
-            if (entity.ownerUserId == userId || userId in entity.members) return@runTransaction null
-            val provider = entity.provider() ?: return@runTransaction null
-            val plan = seedData.plan(provider, entity.planId)
-            if (entity.members.size + 1 >= plan.maxScreens) return@runTransaction null
-            val newMembers = entity.members + userId
-            tx.update(docRef, mapOf("members" to newMembers))
-            entity.copy(members = newMembers)
-        }.await()
-        return updated?.toDomain(seedData, code)
+        return try {
+            val docRef = collection.document(code)
+            val updated = firestore.runTransaction { tx ->
+                val snapshot = tx.get(docRef)
+                val entity = snapshot.toSubscriptionEntity() ?: return@runTransaction null
+                if (entity.ownerUserId == userId || userId in entity.members) return@runTransaction null
+                val provider = entity.provider() ?: return@runTransaction null
+                val plan = seedData.plan(provider, entity.planId)
+                if (entity.members.size + 1 >= plan.maxScreens) return@runTransaction null
+                val newMembers = entity.members + userId
+                tx.update(docRef, mapOf("members" to newMembers))
+                entity.copy(members = newMembers)
+            }.await()
+            updated?.toDomain(seedData, code)
+        } catch (e: Exception) {
+            // TODO: log exception
+            null
+        }
     }
 
     override suspend fun createHostedSubscription(
@@ -98,43 +127,52 @@ class FirestoreSubscriptionRepository @Inject constructor(
         firstBillingDate: LocalDate
     ): Subscription {
         ensureSeedSubscriptions()
-        val id = generateSubscriptionId()
-        val entity = FirestoreSubscriptionEntity(
-            provider = provider.name,
-            planId = plan.id,
-            ownerUserId = ownerId,
-            members = emptyList(),
-            billing = FirestoreBilling(
-                accountMasked = accountMasked,
-                loginId = loginId,
-                passwordMasked = passwordMasked,
-                cycleDay = firstBillingDate.dayOfMonth,
-                nextBillingDate = firstBillingDate.toString()
+        try {
+            val id = generateSubscriptionId()
+            val entity = FirestoreSubscriptionEntity(
+                provider = provider.name,
+                planId = plan.id,
+                ownerUserId = ownerId,
+                members = emptyList(),
+                billing = FirestoreBilling(
+                    accountMasked = accountMasked,
+                    loginId = loginId,
+                    passwordMasked = passwordMasked,
+                    cycleDay = firstBillingDate.dayOfMonth,
+                    nextBillingDate = firstBillingDate.toString()
+                )
             )
-        )
-        collection.document(id).set(entity.toMap()).await()
-        return entity.toDomain(seedData, id)!!
+            collection.document(id).set(entity.toMap()).await()
+            return entity.toDomain(seedData, id)!!
+        } catch (e: Exception) {
+            // TODO: log exception
+            throw e
+        }
     }
 
     private suspend fun ensureSeedSubscriptions() {
         if (seeded.getAndSet(true)) return
-        val snapshot = collection.limit(1).get().await()
-        if (!snapshot.isEmpty) return
-        seedData.subscriptions.forEach { subscription ->
-            val entity = FirestoreSubscriptionEntity(
-                provider = subscription.provider.name,
-                planId = subscription.plan.id,
-                ownerUserId = subscription.ownerUserId,
-                members = subscription.members,
-                billing = FirestoreBilling(
-                    accountMasked = subscription.billing.accountMasked,
-                    loginId = subscription.billing.loginId,
-                    passwordMasked = subscription.billing.passwordMasked,
-                    cycleDay = subscription.billing.cycleDay,
-                    nextBillingDate = subscription.billing.nextBillingDate.toString()
+        try {
+            val snapshot = collection.limit(1).get().await()
+            if (!snapshot.isEmpty) return
+            seedData.subscriptions.forEach { subscription ->
+                val entity = FirestoreSubscriptionEntity(
+                    provider = subscription.provider.name,
+                    planId = subscription.plan.id,
+                    ownerUserId = subscription.ownerUserId,
+                    members = subscription.members,
+                    billing = FirestoreBilling(
+                        accountMasked = subscription.billing.accountMasked,
+                        loginId = subscription.billing.loginId,
+                        passwordMasked = subscription.billing.passwordMasked,
+                        cycleDay = subscription.billing.cycleDay,
+                        nextBillingDate = subscription.billing.nextBillingDate.toString()
+                    )
                 )
-            )
-            collection.document(subscription.id).set(entity.toMap()).await()
+                collection.document(subscription.id).set(entity.toMap()).await()
+            }
+        } catch (e: Exception) {
+            // TODO: log exception
         }
     }
 

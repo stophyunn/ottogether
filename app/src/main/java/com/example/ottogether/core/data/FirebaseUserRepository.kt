@@ -19,40 +19,67 @@ class FirebaseUserRepository @Inject constructor(
 
     override suspend fun getUsers(): List<User> {
         ensureSeedUsers()
-        return collection.get().await().documents.mapNotNull { it.toDomain() }
+        return try {
+            collection.get().await().documents.mapNotNull { it.toDomain() }
+        } catch (e: Exception) {
+            // TODO: log exception
+            emptyList()
+        }
     }
 
     override suspend fun findByEmail(email: String): User? {
         ensureSeedUsers()
-        return collection.whereEqualTo("email", email)
-            .get()
-            .await()
-            .documents
-            .firstOrNull()
-            ?.toDomain()
+        return try {
+            collection.whereEqualTo("email", email)
+                .get()
+                .await()
+                .documents
+                .firstOrNull()
+                ?.toDomain()
+        } catch (e: Exception) {
+            // TODO: log exception
+            null
+        }
     }
 
     override suspend fun getUserById(id: String): User? {
         ensureSeedUsers()
-        return collection.document(id).get().await().takeIf { it.exists() }?.toDomain()
+        return try {
+            collection.document(id).get().await().takeIf { it.exists() }?.toDomain()
+        } catch (e: Exception) {
+            // TODO: log exception
+            null
+        }
     }
 
     override suspend fun addUser(user: User) {
         ensureSeedUsers()
-        collection.document(user.id).set(user.toMap()).await()
+        try {
+            collection.document(user.id).set(user.toMap()).await()
+        } catch (e: Exception) {
+            // TODO: log exception
+        }
     }
 
     override suspend fun updateUser(user: User) {
         ensureSeedUsers()
-        collection.document(user.id).set(user.toMap(), SetOptions.merge()).await()
+        try {
+            collection.document(user.id).set(user.toMap(), SetOptions.merge()).await()
+        } catch (e: Exception) {
+            // TODO: log exception
+        }
     }
 
     private suspend fun ensureSeedUsers() {
         if (seeded.getAndSet(true)) return
-        val snapshot = collection.limit(1).get().await()
-        if (!snapshot.isEmpty) return
-        seedData.users.forEach { user ->
-            collection.document(user.id).set(user.toMap()).await()
+        try {
+            val snapshot = collection.limit(1).get().await()
+            if (!snapshot.isEmpty) return
+            seedData.users.forEach { user ->
+                collection.document(user.id).set(user.toMap()).await()
+            }
+        } catch (e: Exception) {
+            // TODO: log exception
         }
     }
 
