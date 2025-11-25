@@ -102,28 +102,25 @@ dependencies {
     //지피티로 추가한것들
     implementation("androidx.compose.material3:material3")
     implementation("androidx.navigation:navigation-compose:2.8.3")
-// Import the Firebase BoM
-//    implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
-//
-//    //
-//    implementation("com.google.firebase:firebase-analytics")
-//    implementation("com.google.firebase:firebase-auth-ktx")
-//    implementation("com.google.firebase:firebase-firestore-ktx")
-//
-//    // Firebase (Auth + Firestore)
-//    implementation(platform(libs.firebase.bom))
-//    implementation(libs.firebase.auth.ktx)
-//    implementation(libs.firebase.firestore.ktx)
 
-    // Coroutines support for Firebase Tasks
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
-    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
 
-    // 2) 개별 Firebase 모듈들 (버전 X, BOM이 알아서 맞춰줌)
+    // 🔥 Firebase는 BoM + 버전 없는 모듈 형태로만 사용
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    // (원하면) Analytics도
+    // implementation("com.google.firebase:firebase-analytics-ktx")
 
+    // 🔧 gRPC 버전을 강제로 맞춰줌 (Firestore에서 필요)
+    implementation("io.grpc:grpc-okhttp:1.68.0")
+    implementation("io.grpc:grpc-protobuf-lite:1.68.0")
+    implementation("io.grpc:grpc-stub:1.68.0")
+
+    // Google GenAI SDK
     implementation("com.google.genai:google-genai:1.4.1")
+
+
 
 }
 kotlin {
