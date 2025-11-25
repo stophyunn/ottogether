@@ -337,7 +337,8 @@ class AppSessionViewModel @Inject constructor(
     }
 
     private suspend fun refreshUsers() {
-        val users = userRepository.getUsers()
+        val users = runCatching { userRepository.getUsers() }
+            .getOrElse { seedData.users }
         _state.update { it.copy(users = users) }
     }
 
