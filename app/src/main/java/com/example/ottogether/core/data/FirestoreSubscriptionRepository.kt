@@ -36,6 +36,28 @@ class FirestoreSubscriptionRepository @Inject constructor(
         }
     }
 
+    override suspend fun getRecommendedParties(
+        provider: Provider,
+        planId: String?,
+        excludeUserId: String?
+    ): List<Subscription> {
+        ensureSeedSubscriptions()
+        return try {
+            val snapshot = collection.whereEqualTo("provider", provider.name).get().await()
+            snapshot.documents.mapNotNull { doc ->
+                val domain = doc.toDomain(seedData) ?: return@mapNotNull null
+                if (planId != null && domain.plan.id != planId) return@mapNotNull null
+                if (excludeUserId != null && (domain.ownerUserId == excludeUserId || excludeUserId in domain.members)) {
+                    return@mapNotNull null
+                }
+                if (domain.members.size + 1 >= domain.plan.maxScreens) return@mapNotNull null
+                domain
+            }.sortedByDescending { it.members.size }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     override suspend fun getSubscription(id: String): Subscription {
         ensureSeedSubscriptions()
         return try {
@@ -50,9 +72,31 @@ class FirestoreSubscriptionRepository @Inject constructor(
     override suspend fun leaveSubscription(id: String, userId: String) {
         ensureSeedSubscriptions()
         try {
-            collection.document(id)
-                .update("members", com.google.firebase.firestore.FieldValue.arrayRemove(userId))
-                .await()
+            val docRef = collection.document(id)
+            firestore.runTransaction { tx ->
+                val snapshot = tx.get(docRef)
+                val entity = snapshot.toSubscriptionEntity() ?: return@runTransaction null
+                val updatedMembers = entity.members.filterNot { it == userId }
+                val updatedPending = entity.pendingExits - userId
+                tx.update(docRef, mapOf("members" to updatedMembers, "pendingExits" to updatedPending))
+            }.await()
+        } catch (e: Exception) {
+            // TODO: log exception
+        }
+    }
+
+    override suspend fun scheduleLeave(id: String, userId: String, leaveDate: LocalDate) {
+        ensureSeedSubscriptions()
+        try {
+            val docRef = collection.document(id)
+            firestore.runTransaction { tx ->
+                val snapshot = tx.get(docRef)
+                val entity = snapshot.toSubscriptionEntity() ?: return@runTransaction null
+                if (userId !in entity.members) return@runTransaction null
+                val updatedPending = entity.pendingExits + (userId to leaveDate.toString())
+                tx.update(docRef, mapOf("pendingExits" to updatedPending))
+                updatedPending
+            }.await()
         } catch (e: Exception) {
             // TODO: log exception
         }
@@ -140,7 +184,8 @@ class FirestoreSubscriptionRepository @Inject constructor(
                     passwordMasked = passwordMasked,
                     cycleDay = firstBillingDate.dayOfMonth,
                     nextBillingDate = firstBillingDate.toString()
-                )
+                ),
+                pendingExits = emptyMap()
             )
             collection.document(id).set(entity.toMap()).await()
             return entity.toDomain(seedData, id)!!
@@ -167,7 +212,8 @@ class FirestoreSubscriptionRepository @Inject constructor(
                         passwordMasked = subscription.billing.passwordMasked,
                         cycleDay = subscription.billing.cycleDay,
                         nextBillingDate = subscription.billing.nextBillingDate.toString()
-                    )
+                    ),
+                    pendingExits = subscription.pendingExits.mapValues { it.value.toString() }
                 )
                 collection.document(subscription.id).set(entity.toMap()).await()
             }
@@ -185,7 +231,8 @@ private data class FirestoreSubscriptionEntity(
     val planId: String = "",
     val ownerUserId: String = "",
     val members: List<String> = emptyList(),
-    val billing: FirestoreBilling = FirestoreBilling()
+    val billing: FirestoreBilling = FirestoreBilling(),
+    val pendingExits: Map<String, String> = emptyMap()
 ) {
     fun provider(): Provider? = runCatching { Provider.valueOf(provider) }.getOrNull()
 
@@ -199,13 +246,22 @@ private data class FirestoreSubscriptionEntity(
             cycleDay = billing.cycleDay,
             nextBillingDate = billing.nextBillingDate?.let { LocalDate.parse(it) } ?: LocalDate.now()
         )
+        val exitDates = pendingExits.mapNotNull { (memberId, date) ->
+            runCatching { LocalDate.parse(date) }.getOrNull()?.let { memberId to it }
+        }.toMap()
+        val today = LocalDate.now()
+        val activeMembers = members.filterNot { memberId ->
+            exitDates[memberId]?.let { it <= today } ?: false
+        }
+        val activeExits = exitDates.filterValues { it > today }
         return Subscription(
             id = id ?: planId,
             provider = providerEnum,
             plan = plan,
             ownerUserId = ownerUserId,
-            members = members,
-            billing = billingInfo
+            members = activeMembers,
+            billing = billingInfo,
+            pendingExits = activeExits
         )
     }
 
@@ -220,7 +276,8 @@ private data class FirestoreSubscriptionEntity(
             "passwordMasked" to billing.passwordMasked,
             "cycleDay" to billing.cycleDay,
             "nextBillingDate" to billing.nextBillingDate
-        )
+        ),
+        "pendingExits" to pendingExits
     )
 }
 
@@ -238,6 +295,7 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toSubscriptionEntity(
     val ownerUserId = getString("ownerUserId") ?: return null
     val members = get("members") as? List<*> ?: emptyList<Any>()
     val billingMap = get("billing") as? Map<*, *> ?: emptyMap<Any, Any>()
+    val pendingExitMap = get("pendingExits") as? Map<*, *> ?: emptyMap<Any, Any>()
     val billing = FirestoreBilling(
         accountMasked = billingMap["accountMasked"] as? String,
         loginId = billingMap["loginId"] as? String,
@@ -250,7 +308,8 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toSubscriptionEntity(
         planId = planId,
         ownerUserId = ownerUserId,
         members = members.filterIsInstance<String>(),
-        billing = billing
+        billing = billing,
+        pendingExits = pendingExitMap.filterKeys { it is String }.mapValues { it.value as? String ?: "" }
     )
 }
 

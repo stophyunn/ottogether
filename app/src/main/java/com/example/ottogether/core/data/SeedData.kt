@@ -36,6 +36,7 @@ class SeedData @Inject constructor() {
             name = "개졸린 무지",
             email = "sleepy2@ottogether.app",
             phone = "010-3333-3333",
+            profileImageUri = "https://picsum.photos/200?1",
             password = "password2"
         ),
         User(
@@ -43,6 +44,7 @@ class SeedData @Inject constructor() {
             name = "베짱이 무지",
             email = "lazy@ottogether.app",
             phone = "010-4444-4444",
+            profileImageUri = "https://picsum.photos/200?2",
             password = "password3"
         ),
         User(
@@ -232,7 +234,8 @@ class SeedData @Inject constructor() {
                 passwordMasked = "********",
                 cycleDay = 3,
                 nextBillingDate = LocalDate.of(2025, 12, 3)
-            )
+            ),
+            pendingExits = mapOf(users[0].id to LocalDate.now().plusDays(5))
         )
     )
 

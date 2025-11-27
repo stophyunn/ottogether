@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -42,7 +43,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,12 +54,15 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.ottogether.core.model.AuthResult
 import kotlinx.coroutines.launch
 import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
 import com.example.ottogether.core.model.Money
 import com.example.ottogether.core.model.Plan
+import com.example.ottogether.core.model.Subscription
+import com.example.ottogether.core.model.User
 import com.example.ottogether.core.ui.MembershipSpecSummary
 import com.example.ottogether.ui.theme.PreviewContainer
 
@@ -71,6 +77,8 @@ fun PaymentInfoScreen(
     ottName: String,
     plan: Plan,
     logoRes: Int,
+    recommendedParty: Subscription? = null,
+    users: List<User> = emptyList(),
     onBack: () -> Unit = {},
     onJoinParty: suspend (String) -> AuthResult = { AuthResult(false) },
     onPayDone: () -> Unit = {}
@@ -79,6 +87,12 @@ fun PaymentInfoScreen(
     var helper by rememberSaveable { mutableStateOf<String?>(null) }
     var helperColor by remember { mutableStateOf(Color(0xFFD32F2F)) }
     val scope = rememberCoroutineScope()
+    val userMap = remember(users) { users.associateBy { it.id } }
+    val recommendedUsers = remember(recommendedParty, users) {
+        recommendedParty?.let { party ->
+            (listOf(party.ownerUserId) + party.members).map { memberId -> userMap[memberId] }
+        } ?: emptyList()
+    }
     Scaffold(
         containerColor = BgSoft,
         topBar = {
@@ -152,7 +166,7 @@ fun PaymentInfoScreen(
 
             // 파티원 4칸
             AppCard {
-                PartyGrid()
+                PartyGrid(plan.maxScreens, recommendedUsers)
             }
 
             InviteLinkInfo(
@@ -203,41 +217,63 @@ fun PaymentInfoScreen(
 /* ---------- parts ---------- */
 
 @Composable
-private fun PartyGrid() {
+private fun PartyGrid(maxSlots: Int, recommended: List<User?>) {
+    val filledSlots = recommended.take(maxSlots)
+    val remainingSlots = (maxSlots - filledSlots.size).coerceAtLeast(0)
+    val placeholders = List(remainingSlots) { null }
+    val slots = (filledSlots + placeholders).take(4) // UI는 최대 4칸으로 고정 노출
+
+    if (slots.isEmpty()) {
+        Text("현재 자동 매칭 중인 파티가 없어요", color = TextGray, fontSize = 13.sp)
+        return
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            PartyCell("개졸린 무지", modifier = Modifier.weight(1f))
-            PartyCell("개졸린 무지", modifier = Modifier.weight(1f))
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            PartyCell("개졸린 무지", modifier = Modifier.weight(1f))
-            PartyCell("개졸린 무지", modifier = Modifier.weight(1f))
+        slots.chunked(2).forEach { rowItems ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                rowItems.forEach { user ->
+                    PartyCell(user, modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun PartyCell(name: String, modifier: Modifier = Modifier) {
-    // ✅ 배경색 제거: 투명 + 그림자 없음
+private fun PartyCell(user: User?, modifier: Modifier = Modifier) {
+    val name = user?.name ?: "모집중"
     Surface(
         modifier = modifier,
-        color = Color.Transparent,
-        shadowElevation = 0.dp,
+        color = Color.White,
+        shadowElevation = 1.dp,
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                painter = painterResource(R.drawable.profile), // 임시 아바타
-                contentDescription = null,
-                tint = Color.Unspecified,
-                modifier = Modifier.size(28.dp)
-            )
+            if (user?.profileImageUri != null || user?.profileImageRes != null) {
+                AsyncImage(
+                    model = user.profileImageUri ?: user.profileImageRes,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.size(32.dp),
+                    shape = CircleShape,
+                    color = Color(0xFFEDEFF3)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(name.take(2), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
             Spacer(Modifier.width(8.dp))
-            // ✅ 크라운 완전 제거
-            Text(text = name, fontSize = 14.sp)
+            Text(text = name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -385,7 +421,21 @@ private fun PaymentInfoPreview() {
         PaymentInfoScreen(
             ottName = "넷플릭스",
             plan = samplePlan,
-            logoRes = R.drawable.ic_logo_netflix
+            logoRes = R.drawable.ic_logo_netflix,
+            recommendedParty = Subscription(
+                id = "preview-party",
+                provider = com.example.ottogether.core.model.Provider.NETFLIX,
+                plan = samplePlan,
+                ownerUserId = "u1",
+                members = listOf("u2", "u3"),
+                billing = com.example.ottogether.core.model.BillingInfo(),
+                pendingExits = emptyMap()
+            ),
+            users = listOf(
+                com.example.ottogether.core.model.User(id = "u1", name = "졸린 무지", profileImageRes = R.drawable.profile),
+                com.example.ottogether.core.model.User(id = "u2", name = "개졸린 무지"),
+                com.example.ottogether.core.model.User(id = "u3", name = "베짱이 무지")
+            )
         )
     }
 }

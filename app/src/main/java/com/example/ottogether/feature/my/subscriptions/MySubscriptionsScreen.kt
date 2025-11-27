@@ -108,10 +108,12 @@ fun MySubscriptionsScreen(
                 } else {
                     SubscriptionStatus.InProgress
                 }
+                val hasPendingExit = currentUserId?.let { sub.pendingExits.containsKey(it) } == true
                 SubscriptionCard(
                     subscription = sub,
                     status = status,
                     isOwner = sub.ownerUserId == currentUserId,
+                    hasPendingExit = hasPendingExit,
                     nextDate = next,
                     onClick = { onItem(sub) },
                     providerName = providerName(sub)
@@ -161,6 +163,7 @@ private fun SubscriptionCard(
     subscription: Subscription,
     status: SubscriptionStatus,
     isOwner: Boolean,
+    hasPendingExit: Boolean,
     nextDate: String,
     onClick: () -> Unit,
     providerName: String
@@ -233,29 +236,38 @@ private fun SubscriptionCard(
                 .align(Alignment.TopEnd)
                 .zIndex(1f)
         ) {
-            StatusBadge(status)
+            StatusBadges(status, hasPendingExit)
         }
     }
 }
 
-private enum class SubscriptionStatus { InProgress, Matched }
+private enum class SubscriptionStatus { InProgress, Matched, EndingSoon }
 
 @Composable
-private fun StatusBadge(status: SubscriptionStatus) {
-    val (text, color) = when (status) {
-        SubscriptionStatus.InProgress -> "진행중" to Blue
-        SubscriptionStatus.Matched -> "매칭완료" to Orange
+private fun StatusBadges(primaryStatus: SubscriptionStatus, hasPendingExit: Boolean) {
+    val badges = buildList {
+        add(primaryStatus)
+        if (hasPendingExit) add(SubscriptionStatus.EndingSoon)
     }
-    Surface(
-        color = color,
-        shape = RoundedCornerShape(bottomStart = 16.dp)
-    ) {
-        Text(
-            text,
-            color = Color.White,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        badges.forEach { status ->
+            val (text, color) = when (status) {
+                SubscriptionStatus.InProgress -> "진행중" to Blue
+                SubscriptionStatus.Matched -> "매칭완료" to Orange
+                SubscriptionStatus.EndingSoon -> "종료예정" to Color(0xFFB54FFF)
+            }
+            Surface(
+                color = color,
+                shape = RoundedCornerShape(bottomStart = 16.dp)
+            ) {
+                Text(
+                    text,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
     }
 }

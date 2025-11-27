@@ -39,11 +39,7 @@ class AppSessionViewModel @Inject constructor(
     )
     val state: StateFlow<AppSessionState> = _state.asStateFlow()
 
-    private val profileImages = listOf(
-        R.drawable.profile,
-        R.drawable.profile_mint,
-        R.drawable.profile_lilac
-    )
+    private val profileImages = listOf(R.drawable.profile)
 
     init {
         viewModelScope.launch {
@@ -161,6 +157,14 @@ class AppSessionViewModel @Inject constructor(
         }
     }
 
+    fun scheduleLeaveSubscription(id: String, leaveDate: LocalDate) {
+        val user = _state.value.currentUser ?: return
+        viewModelScope.launch {
+            repository.scheduleLeave(id, user.id, leaveDate)
+            refreshSubscriptions(user.id)
+        }
+    }
+
     fun refreshSubscriptions(userId: String? = _state.value.currentUser?.id) {
         val id = userId ?: return
         viewModelScope.launch {
@@ -187,8 +191,13 @@ class AppSessionViewModel @Inject constructor(
                 it.copy(
                     subscriptions = updated,
                     selectedCalendarDate = date
-                )
-            }
+        )
+    }
+
+    suspend fun getRecommendedParties(provider: Provider, planId: String?): List<Subscription> {
+        val userId = _state.value.currentUser?.id
+        return repository.getRecommendedParties(provider, planId, userId)
+    }
         }
     }
 
