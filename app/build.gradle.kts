@@ -24,6 +24,12 @@ android {
             name = "GEMINI_API_KEY",
             value = "\"${project.properties["GEMINI_API_KEY"]}\""
         )
+        buildConfigField(
+            type = "String",
+            name = "TMDB_API_KEY",
+            value = "\"${project.properties["TMDB_API_KEY"]}\""
+        )
+
     }
 
     buildTypes {
@@ -122,6 +128,9 @@ dependencies {
     implementation("com.google.genai:google-genai:1.4.1")
 
     implementation(libs.coil.compose)
+
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
 
 

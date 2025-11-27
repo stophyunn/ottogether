@@ -5,6 +5,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,6 +19,7 @@ import com.example.ottogether.feature.auth.find.FindPasswordScreen
 import com.example.ottogether.feature.auth.login.LoginScreen
 import com.example.ottogether.feature.auth.signup.SignupScreen
 import com.example.ottogether.feature.home.HomeScreen
+import com.example.ottogether.feature.home.HomeViewModel
 import com.example.ottogether.feature.my.calendar.CalendarScreen
 import com.example.ottogether.feature.my.detail.AccountScreen
 import com.example.ottogether.feature.my.detail.ShareAccountScreen
@@ -103,15 +106,29 @@ fun AppNavHost(
         }
 
         composable(Route.Home.path) {
+            // 🔸 HomeViewModel 가져오기 (Hilt)
+            val homeViewModel: HomeViewModel = hiltViewModel()
+            val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+
+            // 🔸 최초 진입 시 TMDB 불러오기
+            LaunchedEffect(Unit) {
+                homeViewModel.loadHome()   // 내가 이전에 적어준 loadHome() (getTrendingMovies 호출)
+            }
+
             HomeScreen(
                 userName = sessionState.currentUser?.name,
                 catalogs = sessionState.catalogs,
                 subscriptions = sessionState.subscriptions,
+                trendingMovies = homeUiState.trendingMovies,   // ⬅️ 여기!
                 onSelectProvider = { providerId ->
                     navController.navigate(Route.PlanSelect.path(providerId))
                 },
-                onOpenSubscriptions = { navController.navigate(Route.MySubscriptions.path) },
-                bottomBar = { MainBottomBar(navController, currentRoute) }
+                onOpenSubscriptions = {
+                    navController.navigate(Route.MySubscriptions.path)
+                },
+                bottomBar = {
+                    MainBottomBar(navController, currentRoute)
+                }
             )
         }
 
