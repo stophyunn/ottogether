@@ -191,14 +191,14 @@ class AppSessionViewModel @Inject constructor(
                 it.copy(
                     subscriptions = updated,
                     selectedCalendarDate = date
-        )
+                )
+            }
+        }
     }
 
     suspend fun getRecommendedParties(provider: Provider, planId: String?): List<Subscription> {
         val userId = _state.value.currentUser?.id
         return repository.getRecommendedParties(provider, planId, userId)
-    }
-        }
     }
 
     suspend fun hostNewSubscription(
