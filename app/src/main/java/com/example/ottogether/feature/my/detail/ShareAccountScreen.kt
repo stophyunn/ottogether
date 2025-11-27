@@ -22,7 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
@@ -67,9 +66,9 @@ import com.example.ottogether.core.model.Plan
 import com.example.ottogether.core.ui.MembershipSpecSummary
 import com.example.ottogether.core.util.toEpochMillis
 import com.example.ottogether.core.util.toLocalDate
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import kotlinx.coroutines.launch
 
 /* ---------- 토큰(이 파일에서만 사용) ---------- */
 private val BgSoft   = Color(0xFFF6F6FB)
@@ -309,7 +308,7 @@ fun ShareAccountScreen(
             text = {
                 Text("파티방이 정상적으로 등록되었습니다!\n파티원 결성시 구독이 시작됩니다!", fontWeight = FontWeight.SemiBold)
             },
-            colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
+            containerColor = Color.White
         )
     }
 
@@ -458,7 +457,7 @@ private fun EditValueDialog(
                 Text("취소", color = TextGray)
             }
         },
-        colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
+        containerColor = Color.White
     )
 }
 

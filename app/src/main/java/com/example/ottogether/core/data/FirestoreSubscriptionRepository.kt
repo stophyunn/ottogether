@@ -5,11 +5,11 @@ import com.example.ottogether.core.model.Plan
 import com.example.ottogether.core.model.Provider
 import com.example.ottogether.core.model.Subscription
 import com.google.firebase.firestore.FirebaseFirestore
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class FirestoreSubscriptionRepository @Inject constructor(
@@ -309,7 +309,9 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toSubscriptionEntity(
         ownerUserId = ownerUserId,
         members = members.filterIsInstance<String>(),
         billing = billing,
-        pendingExits = pendingExitMap.filterKeys { it is String }.mapValues { it.value as? String ?: "" }
+        pendingExits = (pendingExitMap as? Map<String, Any>)
+            ?.mapValues { it.value.toString() }
+            ?: emptyMap()
     )
 }
 

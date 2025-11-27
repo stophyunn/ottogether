@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DatePicker
@@ -62,9 +61,9 @@ import com.example.ottogether.core.model.Subscription
 import com.example.ottogether.core.model.User
 import com.example.ottogether.core.ui.BottomConfirmSheet
 import com.example.ottogether.core.ui.logoFor
-import kotlinx.coroutines.launch
 import com.example.ottogether.core.util.toEpochMillis
 import com.example.ottogether.core.util.toLocalDate
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -83,7 +82,8 @@ fun SubscriptionDetailScreen(
     onLeaveScheduled: (LocalDate) -> Unit = {},
     onBillingDateChanged: (LocalDate) -> Unit = {},
     onTransferHost: suspend (String) -> AuthResult = { AuthResult(false) },
-    userResolver: (String) -> User? = { null }
+    userResolver: (String) -> User? = { null },
+    nameResolver: (String) -> String = { it }
 ) {
     var showQuit by remember { mutableStateOf(false) }
     var showMemberLeave by remember { mutableStateOf(false) }
@@ -294,7 +294,7 @@ fun SubscriptionDetailScreen(
                     fontWeight = FontWeight.SemiBold
                 )
             },
-            colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
+            containerColor = Color.White
         )
     }
 
@@ -314,7 +314,7 @@ fun SubscriptionDetailScreen(
                     fontWeight = FontWeight.SemiBold
                 )
             },
-            colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
+            containerColor = Color.White
         )
     }
 
@@ -389,7 +389,7 @@ fun SubscriptionDetailScreen(
                     Text("닫기", color = TextSub)
                 }
             },
-            colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
+            containerColor = Color.White
         )
     }
 }
