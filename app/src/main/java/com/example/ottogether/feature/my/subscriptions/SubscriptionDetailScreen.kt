@@ -78,6 +78,7 @@ fun SubscriptionDetailScreen(
     currentUserId: String? = null,
     onBack: () -> Unit = {},
     onEditAccount: () -> Unit = {},
+    onLeaveImmediately: () -> Unit = {},
     onLeaveScheduled: (LocalDate) -> Unit = {},
     onBillingDateChanged: (LocalDate) -> Unit = {},
     onTransferHost: suspend (String) -> AuthResult = { AuthResult(false) },
@@ -86,6 +87,7 @@ fun SubscriptionDetailScreen(
     nameResolver: (String) -> String = { it }
 ) {
     var showQuit by remember { mutableStateOf(false) }
+    var showImmediateLeave by remember { mutableStateOf(false) }
     var showMemberLeave by remember { mutableStateOf(false) }
     var showScheduledNotice by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -147,7 +149,8 @@ fun SubscriptionDetailScreen(
                                     }
                                 }
                                 hasPendingExit -> showScheduledNotice = true
-                                else -> showMemberLeave = true
+                                isFull -> showMemberLeave = true
+                                else -> showImmediateLeave = true
                             }
                         }
                 )
@@ -278,6 +281,33 @@ fun SubscriptionDetailScreen(
         }
     }
 
+    if (showImmediateLeave) {
+        AlertDialog(
+            onDismissRequest = { showImmediateLeave = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showImmediateLeave = false
+                    onLeaveImmediately()
+                    onBack()
+                }) {
+                    Text("예", color = Orange, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImmediateLeave = false }) {
+                    Text("아니오", color = TextSub)
+                }
+            },
+            text = {
+                Text(
+                    "아직 파티 매칭이 완료되지 않았어요. 지금 나가면 결제가 즉시 취소되고 바로 파티에서 나가게 돼요. 진행할까요?",
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            containerColor = Color.White
+        )
+    }
+
     if (showMemberLeave) {
         val exitDate = scheduledExitDate ?: subscription.billing.nextBillingDate
         AlertDialog(
@@ -298,7 +328,7 @@ fun SubscriptionDetailScreen(
             },
             text = {
                 Text(
-                    "환불은 불가하며 다음 결제일까지 이용할 수 있어요.\n나가기를 예약할까요?",
+                    "파티 매칭이 완료되어 아이디와 비밀번호가 공유된 상태예요. 지금 나가면 환불은 불가하지만 다음 결제일까지 이용할 수 있고 결제일 이후 자동으로 파티에서 나가요.\n나가기를 예약할까요?",
                     fontWeight = FontWeight.SemiBold
                 )
             },

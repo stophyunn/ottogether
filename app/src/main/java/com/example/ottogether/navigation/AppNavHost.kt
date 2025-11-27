@@ -210,6 +210,10 @@ fun AppNavHost(
                     currentUserId = sessionState.currentUser?.id,
                     onBack = { navController.popBackStack() },
                     onEditAccount = { navController.navigate(Route.Account.path) },
+                    onLeaveImmediately = {
+                        sessionViewModel.leaveSubscription(subscription.id)
+                        navController.popBackStack()
+                    },
                     onLeaveScheduled = { leaveDate ->
                         sessionViewModel.scheduleLeaveSubscription(subscription.id, leaveDate)
                     },
