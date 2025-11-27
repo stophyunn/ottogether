@@ -18,6 +18,7 @@ interface SubscriptionRepository {
     suspend fun updateNextBillingDate(id: String, nextDate: LocalDate)
     suspend fun transferOwnership(id: String, newOwnerId: String): Subscription?
     suspend fun joinPartyByCode(code: String, userId: String): Subscription?
+    suspend fun deleteSubscription(id: String)
     suspend fun createHostedSubscription(
         ownerId: String,
         provider: Provider,

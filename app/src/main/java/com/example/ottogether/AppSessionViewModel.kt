@@ -157,6 +157,30 @@ class AppSessionViewModel @Inject constructor(
         }
     }
 
+    suspend fun leaveAsOwner(subscriptionId: String, transferTo: String?): AuthResult {
+        val user = _state.value.currentUser ?: return AuthResult(false, "로그인이 필요해요")
+        val current = repository.getSubscription(subscriptionId)
+        if (current.ownerUserId != user.id) {
+            return AuthResult(false, "파티장만 사용할 수 있어요")
+        }
+
+        return if (current.members.isEmpty()) {
+            repository.deleteSubscription(subscriptionId)
+            refreshSubscriptions(user.id)
+            AuthResult(true, "파티방을 삭제했어요")
+        } else {
+            val newOwnerId = transferTo ?: return AuthResult(false, "파티장을 양도할 파티원을 선택해주세요")
+            if (newOwnerId !in current.members) {
+                return AuthResult(false, "선택한 파티원을 찾을 수 없어요")
+            }
+            repository.transferOwnership(subscriptionId, newOwnerId)
+                ?: return AuthResult(false, "파티장을 양도하지 못했어요")
+            repository.leaveSubscription(subscriptionId, user.id)
+            refreshSubscriptions(user.id)
+            AuthResult(true, "파티장을 넘기고 파티에서 나갔어요")
+        }
+    }
+
     fun scheduleLeaveSubscription(id: String, leaveDate: LocalDate) {
         val user = _state.value.currentUser ?: return
         viewModelScope.launch {
@@ -244,6 +268,13 @@ class AppSessionViewModel @Inject constructor(
         persistUser(user.copy(profileImageUri = uri, profileImageRes = null))
     }
 
+    fun updateCurrentUserName(newName: String) {
+        val user = _state.value.currentUser ?: return
+        val trimmed = newName.trim()
+        if (trimmed.isBlank()) return
+        persistUser(user.copy(name = trimmed))
+    }
+
     fun updateCurrentUserEmail(newEmail: String) {
         val user = _state.value.currentUser ?: return
         val trimmed = newEmail.trim()
@@ -263,6 +294,13 @@ class AppSessionViewModel @Inject constructor(
         val trimmed = newPhone.trim()
         if (trimmed.isBlank()) return
         persistUser(user.copy(phone = trimmed))
+    }
+
+    fun updateCurrentUserAccount(newAccount: String) {
+        val user = _state.value.currentUser ?: return
+        val trimmed = newAccount.trim()
+        if (trimmed.isBlank()) return
+        persistUser(user.copy(accountNumber = trimmed))
     }
 
     fun updateCurrentUserPassword(newPassword: String) {

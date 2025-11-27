@@ -87,6 +87,10 @@ class FakeSubscriptionRepository @Inject constructor(
         return updated
     }
 
+    override suspend fun deleteSubscription(id: String) {
+        subs.remove(id)
+    }
+
     override suspend fun createHostedSubscription(
         ownerId: String,
         provider: Provider,

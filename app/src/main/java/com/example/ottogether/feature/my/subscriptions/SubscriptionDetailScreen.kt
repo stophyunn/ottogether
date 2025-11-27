@@ -78,10 +78,10 @@ fun SubscriptionDetailScreen(
     currentUserId: String? = null,
     onBack: () -> Unit = {},
     onEditAccount: () -> Unit = {},
-    onLeaveConfirmed: () -> Unit = {},
     onLeaveScheduled: (LocalDate) -> Unit = {},
     onBillingDateChanged: (LocalDate) -> Unit = {},
     onTransferHost: suspend (String) -> AuthResult = { AuthResult(false) },
+    onOwnerLeave: suspend (String?) -> AuthResult = { AuthResult(false) },
     userResolver: (String) -> User? = { null },
     nameResolver: (String) -> String = { it }
 ) {
@@ -90,6 +90,7 @@ fun SubscriptionDetailScreen(
     var showScheduledNotice by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTransferDialog by remember { mutableStateOf(false) }
+    var ownerLeaving by remember { mutableStateOf(false) }
     var transferMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var transferMessageColor by remember { mutableStateOf(Color(0xFFD32F2F)) }
     val formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
@@ -137,7 +138,14 @@ fun SubscriptionDetailScreen(
                         .padding(4.dp)
                         .clickable {
                             when {
-                                isOwner -> showQuit = true
+                                isOwner -> {
+                                    if (subscription.members.isEmpty()) {
+                                        showQuit = true
+                                    } else {
+                                        ownerLeaving = true
+                                        showTransferDialog = true
+                                    }
+                                }
                                 hasPendingExit -> showScheduledNotice = true
                                 else -> showMemberLeave = true
                             }
@@ -323,8 +331,15 @@ fun SubscriptionDetailScreen(
         message = "정말 구독을 그만두시겠어요?",
         onNegative = { showQuit = false },
         onPositive = {
-            showQuit = false
-            onLeaveConfirmed()
+            coroutineScope.launch {
+                showQuit = false
+                val result = onOwnerLeave(null)
+                transferMessageColor = if (result.success) Color(0xFF1B873C) else Color(0xFFD32F2F)
+                transferMessage = result.message
+                if (result.success) {
+                    onBack()
+                }
+            }
         }
     )
 
@@ -363,8 +378,15 @@ fun SubscriptionDetailScreen(
 
     if (showTransferDialog) {
         AlertDialog(
-            onDismissRequest = { showTransferDialog = false },
-            title = { Text("파티장을 누구에게 넘길까요?") },
+            onDismissRequest = {
+                showTransferDialog = false
+                ownerLeaving = false
+            },
+            title = {
+                Text(
+                    if (ownerLeaving) "파티장을 넘길 파티원을 선택해주세요" else "파티장을 누구에게 넘길까요?"
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     subscription.members.forEach { memberId ->
@@ -372,10 +394,19 @@ fun SubscriptionDetailScreen(
                         TextButton(
                             onClick = {
                                 coroutineScope.launch {
-                                    val result = onTransferHost(memberId)
+                                    val result = if (ownerLeaving) {
+                                        onOwnerLeave(memberId)
+                                    } else {
+                                        onTransferHost(memberId)
+                                    }
                                     transferMessageColor = if (result.success) Color(0xFF1B873C) else Color(0xFFD32F2F)
                                     transferMessage = result.message
                                     showTransferDialog = false
+                                    val shouldClose = ownerLeaving && result.success
+                                    ownerLeaving = false
+                                    if (shouldClose) {
+                                        onBack()
+                                    }
                                 }
                             }
                         ) {
@@ -385,7 +416,10 @@ fun SubscriptionDetailScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showTransferDialog = false }) {
+                TextButton(onClick = {
+                    showTransferDialog = false
+                    ownerLeaving = false
+                }) {
                     Text("닫기", color = TextSub)
                 }
             },
