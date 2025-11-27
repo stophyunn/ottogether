@@ -1,13 +1,17 @@
 package com.example.ottogether.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.ottogether.AppSessionState
 import com.example.ottogether.AppSessionViewModel
+import com.example.ottogether.core.model.Subscription
 import com.example.ottogether.feature.auth.find.FindEmailScreen
 import com.example.ottogether.feature.auth.find.FindPasswordScreen
 import com.example.ottogether.feature.auth.login.LoginScreen
@@ -207,13 +211,16 @@ fun AppNavHost(
                         sessionViewModel.leaveSubscription(subscription.id)
                         navController.popBackStack()
                     },
+                    onLeaveScheduled = { leaveDate ->
+                        sessionViewModel.scheduleLeaveSubscription(subscription.id, leaveDate)
+                    },
                     onBillingDateChanged = { date ->
                         sessionViewModel.updateNextBillingDate(subscription.id, date)
                     },
                     onTransferHost = { memberId ->
                         sessionViewModel.transferOwnership(subscription.id, memberId)
                     },
-                    nameResolver = { userId -> nameMap[userId]?.name ?: userId }
+                    userResolver = { userId -> nameMap[userId] }
                 )
             }
         }
@@ -269,10 +276,16 @@ fun AppNavHost(
             val catalog = sessionState.catalogs.firstOrNull { it.provider.name == providerKey }
             val plan = catalog?.plans?.firstOrNull { it.id == planId }
             if (catalog != null && plan != null) {
+                val recommended = remember { mutableStateOf<List<Subscription>>(emptyList()) }
+                LaunchedEffect(providerKey, planId, sessionState.currentUser?.id) {
+                    recommended.value = sessionViewModel.getRecommendedParties(catalog.provider, plan.id)
+                }
                 PaymentInfoScreen(
                     ottName = catalog.displayName,
                     plan = plan,
                     logoRes = catalog.logoRes,
+                    recommendedParty = recommended.value.firstOrNull(),
+                    users = sessionState.users,
                     onBack = { navController.popBackStack() },
                     onJoinParty = { code -> sessionViewModel.joinPartyByCode(code) },
                     onPayDone = {

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -143,21 +145,28 @@ fun AccountScreen(
             Box(
                 modifier = Modifier
                     .size(120.dp)
-                    .clip(RoundedCornerShape(60.dp))
-                    .background(Color(0xFFEDEFF3))
-                    .clickable(onClick = launchPhotoPicker)
+                    .clickable(onClick = launchPhotoPicker),
+                contentAlignment = Alignment.Center
             ) {
-                AsyncImage(
-                    model = profileImageUri ?: profileImageRes ?: R.drawable.profile,
-                    contentDescription = "프로필",
+                Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .clip(RoundedCornerShape(60.dp)),
-                    contentScale = ContentScale.Crop
-                )
+                        .clip(RoundedCornerShape(60.dp))
+                        .background(Color(0xFFEDEFF3))
+                ) {
+                    AsyncImage(
+                        model = profileImageUri ?: profileImageRes ?: R.drawable.profile,
+                        contentDescription = "프로필",
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clip(RoundedCornerShape(60.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
+                        .offset(x = 6.dp, y = 6.dp)
                         .size(32.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = Color.White,
@@ -380,7 +389,8 @@ private fun AccountEditDialog(
             TextButton(onClick = onDismiss) {
                 Text("취소", color = TextSub)
             }
-        }
+        },
+        colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
     )
 }
 

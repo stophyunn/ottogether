@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DatePicker
@@ -47,15 +48,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.ottogether.R
 import com.example.ottogether.core.model.AuthResult
 import com.example.ottogether.core.model.Subscription
+import com.example.ottogether.core.model.User
 import com.example.ottogether.core.ui.BottomConfirmSheet
 import com.example.ottogether.core.ui.logoFor
 import kotlinx.coroutines.launch
@@ -76,11 +80,14 @@ fun SubscriptionDetailScreen(
     onBack: () -> Unit = {},
     onEditAccount: () -> Unit = {},
     onLeaveConfirmed: () -> Unit = {},
+    onLeaveScheduled: (LocalDate) -> Unit = {},
     onBillingDateChanged: (LocalDate) -> Unit = {},
     onTransferHost: suspend (String) -> AuthResult = { AuthResult(false) },
-    nameResolver: (String) -> String = { it }
+    userResolver: (String) -> User? = { null }
 ) {
     var showQuit by remember { mutableStateOf(false) }
+    var showMemberLeave by remember { mutableStateOf(false) }
+    var showScheduledNotice by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTransferDialog by remember { mutableStateOf(false) }
     var transferMessage by rememberSaveable { mutableStateOf<String?>(null) }
@@ -88,6 +95,8 @@ fun SubscriptionDetailScreen(
     val formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
     val isOwner = subscription.ownerUserId == currentUserId
     val isFull = subscription.members.size + 1 >= subscription.plan.maxScreens
+    val hasPendingExit = subscription.pendingExits.containsKey(currentUserId)
+    val scheduledExitDate = subscription.pendingExits[currentUserId]
     val inviteLink = "https://ottogether.app/party/${subscription.id}"
     val coroutineScope = rememberCoroutineScope()
 
@@ -112,10 +121,13 @@ fun SubscriptionDetailScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val canEditBilling = isOwner
                 Text(
                     text = "결제일 수정하기",
-                    color = Orange,
-                    modifier = Modifier.clickable { showDatePicker = true }
+                    color = if (canEditBilling) Orange else TextSub.copy(alpha = 0.5f),
+                    modifier = Modifier.then(
+                        if (canEditBilling) Modifier.clickable { showDatePicker = true } else Modifier
+                    )
                 )
                 Text(
                     text = "파티 나가기",
@@ -123,7 +135,13 @@ fun SubscriptionDetailScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .padding(4.dp)
-                        .clickable { showQuit = true }
+                        .clickable {
+                            when {
+                                isOwner -> showQuit = true
+                                hasPendingExit -> showScheduledNotice = true
+                                else -> showMemberLeave = true
+                            }
+                        }
                 )
             }
         }
@@ -158,6 +176,14 @@ fun SubscriptionDetailScreen(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
+                scheduledExitDate?.let {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "파티 나가기 예정: ${it.format(formatter)}",
+                        color = TextSub,
+                        fontSize = 13.sp
+                    )
+                }
             }
 
             Surface(
@@ -170,20 +196,39 @@ fun SubscriptionDetailScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    val showCredentials = isOwner || isFull
+                    val loginValue = if (showCredentials) {
+                        subscription.billing.loginId ?: "-"
+                    } else {
+                        "파티원이 모두 모이면 공개돼요"
+                    }
+                    val passwordValue = if (showCredentials) {
+                        subscription.billing.passwordMasked ?: "-"
+                    } else {
+                        "파티가 완성되면 확인할 수 있어요"
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            InfoRow(label = "아이디", value = subscription.billing.loginId ?: "-")
-                            InfoRow(label = "비밀번호", value = subscription.billing.passwordMasked ?: "-")
+                            InfoRow(label = "아이디", value = loginValue)
+                            InfoRow(label = "비밀번호", value = passwordValue)
                         }
-                        IconButton(onClick = onEditAccount) {
+                        if (isOwner) {
+                            IconButton(onClick = onEditAccount) {
+                                Icon(
+                                    imageVector = Icons.Filled.ChevronRight,
+                                    contentDescription = "수정하기",
+                                    tint = TextSub
+                                )
+                            }
+                        } else {
                             Icon(
                                 imageVector = Icons.Filled.ChevronRight,
                                 contentDescription = "수정하기",
-                                tint = TextSub
+                                tint = TextSub.copy(alpha = 0.4f)
                             )
                         }
                     }
@@ -195,13 +240,17 @@ fun SubscriptionDetailScreen(
             }
 
             SectionHeader(title = "파티장")
-            MemberRow(name = nameResolver(subscription.ownerUserId), leader = true)
+            val owner = userResolver(subscription.ownerUserId)
+            MemberRow(user = owner, fallbackName = owner?.name ?: subscription.ownerUserId, leader = true)
 
             SectionHeader(title = "파티원")
             if (subscription.members.isEmpty()) {
                 Text("아직 파티원이 없습니다", color = TextSub)
             } else {
-                subscription.members.forEach { MemberRow(name = nameResolver(it), leader = false) }
+                subscription.members.forEach { memberId ->
+                    val user = userResolver(memberId)
+                    MemberRow(user = user, fallbackName = user?.name ?: memberId, leader = false)
+                }
             }
 
             if (isOwner && subscription.members.isNotEmpty()) {
@@ -221,6 +270,54 @@ fun SubscriptionDetailScreen(
         }
     }
 
+    if (showMemberLeave) {
+        val exitDate = scheduledExitDate ?: subscription.billing.nextBillingDate
+        AlertDialog(
+            onDismissRequest = { showMemberLeave = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showMemberLeave = false
+                    onLeaveScheduled(exitDate)
+                    showScheduledNotice = true
+                }) {
+                    Text("예", color = Orange, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMemberLeave = false }) {
+                    Text("아니오", color = TextSub)
+                }
+            },
+            text = {
+                Text(
+                    "환불은 불가하며 다음 결제일까지 이용할 수 있어요.\n나가기를 예약할까요?",
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
+        )
+    }
+
+    if (showScheduledNotice) {
+        val exitDate = scheduledExitDate ?: subscription.billing.nextBillingDate
+        AlertDialog(
+            onDismissRequest = { showScheduledNotice = false },
+            confirmButton = {
+                TextButton(onClick = { showScheduledNotice = false }) {
+                    Text("확인", color = Orange, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                val scheduledText = exitDate.format(formatter)
+                Text(
+                    "파티 종료 예정일: $scheduledText\n이 날짜에 자동으로 파티에서 나가게 돼요.",
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
+        )
+    }
+
     BottomConfirmSheet(
         show = showQuit,
         message = "정말 구독을 그만두시겠어요?",
@@ -231,7 +328,7 @@ fun SubscriptionDetailScreen(
         }
     )
 
-    if (showDatePicker) {
+    if (showDatePicker && isOwner) {
         val pickerState = rememberDatePickerState(
             initialSelectedDateMillis = subscription.billing.nextBillingDate.toEpochMillis()
         )
@@ -291,7 +388,8 @@ fun SubscriptionDetailScreen(
                 TextButton(onClick = { showTransferDialog = false }) {
                     Text("닫기", color = TextSub)
                 }
-            }
+            },
+            colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
         )
     }
 }
@@ -320,7 +418,8 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun MemberRow(name: String, leader: Boolean) {
+private fun MemberRow(user: User?, fallbackName: String, leader: Boolean) {
+    val displayName = user?.name ?: fallbackName
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -329,13 +428,24 @@ private fun MemberRow(name: String, leader: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Box {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = CircleShape,
-                color = Color(0xFFEDEFF3)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(name.take(2), fontWeight = FontWeight.Bold)
+            if (user?.profileImageUri != null || user?.profileImageRes != null) {
+                AsyncImage(
+                    model = user.profileImageUri ?: user.profileImageRes,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    color = Color(0xFFEDEFF3)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(displayName.take(2), fontWeight = FontWeight.Bold)
+                    }
                 }
             }
             if (leader) {
@@ -349,7 +459,7 @@ private fun MemberRow(name: String, leader: Boolean) {
             }
         }
         Column(Modifier.weight(1f)) {
-            Text(name, fontWeight = FontWeight.SemiBold)
+            Text(displayName, fontWeight = FontWeight.SemiBold)
             if (leader) {
                 Text("파티장", color = TextSub, fontSize = 12.sp)
             }

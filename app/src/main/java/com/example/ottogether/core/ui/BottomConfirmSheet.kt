@@ -1,5 +1,6 @@
 package com.example.ottogether.core.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,9 +49,10 @@ fun BottomConfirmSheet(
             contentAlignment = Alignment.BottomCenter
         ) {
             Surface(
-                color = Color(0xFFFF7A2F), // 오렌지
+                color = Color.White,
                 shape = RoundedCornerShape(16.dp),
                 tonalElevation = 0.dp,
+                border = BorderStroke(1.dp, Color(0xFFFF7A2F)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
@@ -59,7 +61,7 @@ fun BottomConfirmSheet(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(message, color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    Text(message, color = Color(0xFF222222), style = MaterialTheme.typography.titleMedium)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),

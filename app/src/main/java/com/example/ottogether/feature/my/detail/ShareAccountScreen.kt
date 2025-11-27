@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
@@ -307,7 +308,8 @@ fun ShareAccountScreen(
             },
             text = {
                 Text("파티방이 정상적으로 등록되었습니다!\n파티원 결성시 구독이 시작됩니다!", fontWeight = FontWeight.SemiBold)
-            }
+            },
+            colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
         )
     }
 
@@ -455,7 +457,8 @@ private fun EditValueDialog(
             TextButton(onClick = onDismiss) {
                 Text("취소", color = TextGray)
             }
-        }
+        },
+        colors = AlertDialogDefaults.dialogColors(containerColor = Color.White)
     )
 }
 
