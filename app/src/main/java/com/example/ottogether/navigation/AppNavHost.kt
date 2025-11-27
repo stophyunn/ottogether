@@ -111,7 +111,6 @@ fun AppNavHost(
                     navController.navigate(Route.PlanSelect.path(providerId))
                 },
                 onOpenSubscriptions = { navController.navigate(Route.MySubscriptions.path) },
-                onOpenCalendar = { navController.navigate(Route.MyCalendar.path) },
                 bottomBar = { MainBottomBar(navController, currentRoute) }
             )
         }
@@ -150,6 +149,7 @@ fun AppNavHost(
                 onSubscriptionItem = { sub ->
                     navController.navigate(Route.SubscriptionDetail.path(sub.id))
                 },
+                onOpenCalendar = { navController.navigate(Route.MyCalendar.path) },
                 bottomBar = { MainBottomBar(navController, currentRoute) }
             )
         }
@@ -159,14 +159,17 @@ fun AppNavHost(
                 userName = sessionState.currentUser?.name,
                 email = sessionState.currentUser?.email,
                 phone = sessionState.currentUser?.phone,
+                accountNumber = sessionState.currentUser?.accountNumber,
                 password = sessionState.currentUser?.password,
                 profileImageRes = sessionState.currentUser?.profileImageRes,
                 profileImageUri = sessionState.currentUser?.profileImageUri,
                 onBack = { navController.popBackStack() },
                 onChangeProfileImage = sessionViewModel::cycleProfileImage,
                 onProfileImageSelected = { uri -> sessionViewModel.updateProfileImage(uri) },
+                onUpdateName = sessionViewModel::updateCurrentUserName,
                 onUpdateEmail = sessionViewModel::updateCurrentUserEmail,
                 onUpdatePhone = sessionViewModel::updateCurrentUserPhone,
+                onUpdateAccount = sessionViewModel::updateCurrentUserAccount,
                 onUpdatePassword = sessionViewModel::updateCurrentUserPassword,
                 onLogout = {
                     sessionViewModel.logout()
@@ -207,10 +210,6 @@ fun AppNavHost(
                     currentUserId = sessionState.currentUser?.id,
                     onBack = { navController.popBackStack() },
                     onEditAccount = { navController.navigate(Route.Account.path) },
-                    onLeaveConfirmed = {
-                        sessionViewModel.leaveSubscription(subscription.id)
-                        navController.popBackStack()
-                    },
                     onLeaveScheduled = { leaveDate ->
                         sessionViewModel.scheduleLeaveSubscription(subscription.id, leaveDate)
                     },
@@ -219,6 +218,13 @@ fun AppNavHost(
                     },
                     onTransferHost = { memberId ->
                         sessionViewModel.transferOwnership(subscription.id, memberId)
+                    },
+                    onOwnerLeave = { newOwnerId ->
+                        val result = sessionViewModel.leaveAsOwner(subscription.id, newOwnerId)
+                        if (result.success) {
+                            navController.popBackStack()
+                        }
+                        result
                     },
                     userResolver = { userId -> nameMap[userId] }
                 )
@@ -263,6 +269,7 @@ fun AppNavHost(
                     },
                     onOpenMySubscriptions = {
                         navController.navigate(Route.MySubscriptions.path) {
+                            popUpTo(Route.HostShare.path) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
@@ -311,7 +318,7 @@ private fun MainBottomBar(navController: NavHostController, currentRoute: String
     BottomNavigationBar(
         currentRoute = resolved,
         onItemClick = { route ->
-            if (route == resolved) return@BottomNavigationBar
+            if (route == currentRoute) return@BottomNavigationBar
             navController.navigate(route) {
                 popUpTo(Route.Home.path) { inclusive = false }
                 launchSingleTop = true

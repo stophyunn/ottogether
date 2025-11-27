@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,9 +33,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -41,6 +45,7 @@ import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
 import com.example.ottogether.core.model.Subscription
 import com.example.ottogether.core.ui.logoFor
+import java.time.format.DateTimeFormatter
 
 private val BgSoft = Color(0xFFF6F6FB)
 private val Orange = Color(0xFFFF7A2F)
@@ -58,6 +63,7 @@ fun MyProfileScreen(
     onMyAccount: () -> Unit = {},
     onSubscriptions: () -> Unit = {},
     onSubscriptionItem: (Subscription) -> Unit = {},
+    onOpenCalendar: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {}
 ) {
     Scaffold(
@@ -124,6 +130,12 @@ fun MyProfileScreen(
             }
 
             Divider(color = Color(0xFFE7E8EE), thickness = 1.dp)
+
+            SubscriptionReportCard(
+                subscriptions = subscriptions,
+                onOpenCalendar = onOpenCalendar,
+                titleProvider = providerName
+            )
 
             AppCard {
                 Column(
@@ -195,4 +207,112 @@ private fun SubscriptionRow(
         Text(dday, color = GrayText, style = MaterialTheme.typography.labelMedium)
     }
 }
+
+@Composable
+private fun SubscriptionReportCard(
+    subscriptions: List<Subscription>,
+    onOpenCalendar: () -> Unit,
+    titleProvider: (Subscription) -> String
+) {
+    val formatter = DateTimeFormatter.ofPattern("MM월 dd일")
+    val totalFull = subscriptions.sumOf { it.plan.monthlyPrice.amountWon }
+    val totalShared = subscriptions.sumOf { it.plan.sharedMonthlyPrice.amountWon }
+    val totalSaved = (totalFull - totalShared).coerceAtLeast(0)
+    val nextBilling = subscriptions.minByOrNull { it.billing.nextBillingDate }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.White,
+        shape = RoundedCornerShape(16.dp),
+        shadowElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = "이번 달 구독 리포트",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatCard(
+                    label = "이번달 절약 금액",
+                    value = formatMoney(totalSaved),
+                    highlight = true,
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    label = "총 나의 구독료",
+                    value = formatMoney(totalShared),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            nextBilling?.let { upcoming ->
+                Text(
+                    text = "다가오는 결제 · ${titleProvider(upcoming)} ${upcoming.plan.name} · ${upcoming.billing.nextBillingDate.format(formatter)}",
+                    style = MaterialTheme.typography.bodySmall.copy(color = GrayText)
+                )
+            } ?: run {
+                Text(
+                    text = "등록된 구독이 없습니다",
+                    style = MaterialTheme.typography.bodySmall.copy(color = GrayText)
+                )
+            }
+
+            Button(
+                onClick = onOpenCalendar,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Orange),
+                border = ButtonDefaults.outlinedButtonBorder().copy(brush = SolidColor(Orange))
+            ) {
+                Text("나의 구독 캘린더")
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatCard(
+    label: String,
+    value: String,
+    highlight: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BgSoft,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = GrayText,
+                    textAlign = TextAlign.Center
+                ),
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = if (highlight) Orange else Color(0xFF111111)
+                ),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+private fun formatMoney(amount: Int): String =
+    if (amount <= 0) "0원" else "%,d원".format(amount)
 

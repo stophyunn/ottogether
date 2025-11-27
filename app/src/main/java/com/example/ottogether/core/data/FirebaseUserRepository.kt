@@ -87,6 +87,7 @@ class FirebaseUserRepository @Inject constructor(
         "name" to name,
         "email" to email,
         "phone" to phone,
+        "accountNumber" to accountNumber,
         "profileImageRes" to profileImageRes,
         "profileImageUri" to profileImageUri,
         "password" to password,
@@ -96,6 +97,7 @@ class FirebaseUserRepository @Inject constructor(
         val name = getString("name") ?: return null
         val email = getString("email")
         val phone = getString("phone")
+        val accountNumber = getString("accountNumber")
         val profileImageRes = getLong("profileImageRes")?.toInt()
         val profileImageUri = getString("profileImageUri")
         val password = getString("password")
@@ -104,6 +106,7 @@ class FirebaseUserRepository @Inject constructor(
             name = name,
             email = email,
             phone = phone,
+            accountNumber = accountNumber,
             profileImageRes = profileImageRes,
             profileImageUri = profileImageUri,
             password = password

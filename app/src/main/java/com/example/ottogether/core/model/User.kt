@@ -6,6 +6,7 @@ data class User(
     val name: String,
     val email: String? = null,
     val phone: String? = null,
+    val accountNumber: String? = null,
     val profileImageRes: Int? = null, // drawable res id (임시)
     val profileImageUri: String? = null,
     val password: String? = null,

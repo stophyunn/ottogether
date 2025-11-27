@@ -69,14 +69,17 @@ fun AccountScreen(
     userName: String? = null,
     email: String? = null,
     phone: String? = null,
+    accountNumber: String? = null,
     password: String? = null,
     profileImageRes: Int? = null,
     profileImageUri: String? = null,
     onBack: () -> Unit = {},
     onChangeProfileImage: () -> Unit = {},
     onProfileImageSelected: (String?) -> Unit = {},
+    onUpdateName: (String) -> Unit = {},
     onUpdateEmail: (String) -> Unit = {},
     onUpdatePhone: (String) -> Unit = {},
+    onUpdateAccount: (String) -> Unit = {},
     onUpdatePassword: (String) -> Unit = {},
     onLogout: () -> Unit = {},
     onWithdrawConfirmed: () -> Unit = {},
@@ -88,6 +91,7 @@ fun AccountScreen(
     var editingValue by remember { mutableStateOf("") }
     val maskedPassword = password?.takeIf { it.isNotBlank() }
         ?.let { "•".repeat(it.length.coerceAtMost(12)) } ?: "-"
+    val accountValue = accountNumber?.takeIf { it.isNotBlank() } ?: "계좌번호를 등록해주세요"
 
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -211,6 +215,15 @@ fun AccountScreen(
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
                         InfoRow(
+                            label = "닉네임",
+                            value = userName ?: "-",
+                            actionLabel = "수정",
+                            onAction = {
+                                editingField = AccountEditableField.Name
+                                editingValue = userName.orEmpty()
+                            }
+                        )
+                        InfoRow(
                             label = "아이디",
                             value = email ?: "-",
                             actionLabel = "수정",
@@ -237,7 +250,15 @@ fun AccountScreen(
                                 editingValue = phone.orEmpty()
                             }
                         )
-                        InfoRow(label = "계좌번호", value = "국민은행 00000-0000-0000")
+                        InfoRow(
+                            label = "계좌번호",
+                            value = accountValue,
+                            actionLabel = "수정",
+                            onAction = {
+                                editingField = AccountEditableField.Account
+                                editingValue = accountNumber.orEmpty()
+                            }
+                        )
                     }
                 }
                 Spacer(Modifier.height(12.dp))
@@ -282,16 +303,20 @@ fun AccountScreen(
     editingField?.let { field ->
         AccountEditDialog(
             title = when (field) {
+                AccountEditableField.Name -> "닉네임을 수정할게요"
                 AccountEditableField.Email -> "아이디를 수정할게요"
                 AccountEditableField.Password -> "비밀번호를 수정할게요"
                 AccountEditableField.Phone -> "휴대폰 번호를 수정할게요"
+                AccountEditableField.Account -> "계좌번호를 수정할게요"
             },
             value = editingValue,
             onValueChange = { editingValue = it },
             keyboardType = when (field) {
+                AccountEditableField.Name -> KeyboardType.Text
                 AccountEditableField.Email -> KeyboardType.Email
                 AccountEditableField.Password -> KeyboardType.Password
                 AccountEditableField.Phone -> KeyboardType.Phone
+                AccountEditableField.Account -> KeyboardType.Text
             },
             isPassword = field == AccountEditableField.Password,
             onDismiss = {
@@ -300,9 +325,11 @@ fun AccountScreen(
             },
             onConfirm = { newValue ->
                 when (field) {
+                    AccountEditableField.Name -> onUpdateName(newValue)
                     AccountEditableField.Email -> onUpdateEmail(newValue)
                     AccountEditableField.Password -> onUpdatePassword(newValue)
                     AccountEditableField.Phone -> onUpdatePhone(newValue)
+                    AccountEditableField.Account -> onUpdateAccount(newValue)
                 }
                 editingField = null
                 editingValue = ""
@@ -391,7 +418,7 @@ private fun AccountEditDialog(
     )
 }
 
-private enum class AccountEditableField { Email, Password, Phone }
+private enum class AccountEditableField { Name, Email, Password, Phone, Account }
 
 @Preview(showBackground = true, widthDp = 393, heightDp = 852, name = "내 계정 – Preview")
 @Composable

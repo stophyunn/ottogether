@@ -161,6 +161,15 @@ class FirestoreSubscriptionRepository @Inject constructor(
         }
     }
 
+    override suspend fun deleteSubscription(id: String) {
+        ensureSeedSubscriptions()
+        try {
+            collection.document(id).delete().await()
+        } catch (e: Exception) {
+            // TODO: log exception
+        }
+    }
+
     override suspend fun createHostedSubscription(
         ownerId: String,
         provider: Provider,
