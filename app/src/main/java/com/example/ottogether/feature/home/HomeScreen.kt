@@ -149,13 +149,13 @@ private fun HomeLogoHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
+            .padding(15.dp),
         contentAlignment = Alignment.Center
     ) {
         Image(
             painter = painterResource(id = R.drawable.ic_logo_ottogether),
             contentDescription = "오티투게더 로고",
-            modifier = Modifier.size(width = 200.dp, height = 60.dp)
+            modifier = Modifier.size(width = 230.dp, height = 80.dp)
         )
     }
 }
