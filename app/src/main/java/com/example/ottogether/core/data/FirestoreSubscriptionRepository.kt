@@ -205,30 +205,7 @@ class FirestoreSubscriptionRepository @Inject constructor(
     }
 
     private suspend fun ensureSeedSubscriptions() {
-        if (seeded.getAndSet(true)) return
-        try {
-            val snapshot = collection.limit(1).get().await()
-            if (!snapshot.isEmpty) return
-            seedData.subscriptions.forEach { subscription ->
-                val entity = FirestoreSubscriptionEntity(
-                    provider = subscription.provider.name,
-                    planId = subscription.plan.id,
-                    ownerUserId = subscription.ownerUserId,
-                    members = subscription.members,
-                    billing = FirestoreBilling(
-                        accountMasked = subscription.billing.accountMasked,
-                        loginId = subscription.billing.loginId,
-                        passwordMasked = subscription.billing.passwordMasked,
-                        cycleDay = subscription.billing.cycleDay,
-                        nextBillingDate = subscription.billing.nextBillingDate.toString()
-                    ),
-                    pendingExits = subscription.pendingExits.mapValues { it.value.toString() }
-                )
-                collection.document(subscription.id).set(entity.toMap()).await()
-            }
-        } catch (e: Exception) {
-            // TODO: log exception
-        }
+        seeded.set(true)
     }
 
     private fun generateSubscriptionId(): String =
