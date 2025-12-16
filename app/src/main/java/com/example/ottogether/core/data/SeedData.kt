@@ -22,59 +22,7 @@ class SeedData @Inject constructor() {
         val plans: List<Plan>
     )
 
-    val users = listOf(
-        User(
-            id = "u1",
-            name = "졸린 무지",
-            email = "song2025@sookmyung.ac.kr",
-            phone = "010-2025-2025",
-            accountNumber = "국민은행 2020-2020-2020202",
-            profileImageRes = R.drawable.profile,
-            password = "password1"
-        ),
-        User(
-            id = "u2",
-            name = "개졸린 무지",
-            email = "sleepy2@ottogether.app",
-            phone = "010-3333-3333",
-            accountNumber = "우리은행 3333-3333-333333",
-            profileImageUri = "https://picsum.photos/200?1",
-            password = "password2"
-        ),
-        User(
-            id = "u3",
-            name = "베짱이 무지",
-            email = "lazy@ottogether.app",
-            phone = "010-4444-4444",
-            accountNumber = "카카오뱅크 4444-4444-444444",
-            profileImageUri = "https://picsum.photos/200?2",
-            password = "password3"
-        ),
-        User(
-            id = "u4",
-            name = "성실한 무지",
-            email = "steady@ottogether.app",
-            phone = "010-5555-5555",
-            accountNumber = "신한은행 5555-5555-555555",
-            password = "password4"
-        ),
-        User(
-            id = "u5",
-            name = "열정 무지",
-            email = "passion@ottogether.app",
-            phone = "010-6666-6666",
-            accountNumber = "IBK 6666-6666-666666",
-            password = "password5"
-        ),
-        User(
-            id = "u6",
-            name = "야근 무지",
-            email = "overtime@ottogether.app",
-            phone = "010-7777-7777",
-            accountNumber = "하나은행 7777-7777-777777",
-            password = "password6"
-        )
-    )
+    val users = emptyList<User>()
 
     val catalogs = listOf(
         ProviderCatalog(
