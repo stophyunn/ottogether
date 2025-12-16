@@ -81,7 +81,7 @@ fun PaymentInfoScreen(
     users: List<User> = emptyList(),
     onBack: () -> Unit = {},
     onJoinParty: suspend (String) -> AuthResult = { AuthResult(false) },
-    onPayDone: () -> Unit = {}
+    onPayDone: suspend (String?) -> AuthResult = { AuthResult(false) }
 ) {
     var inviteCode by rememberSaveable { mutableStateOf("") }
     var helper by rememberSaveable { mutableStateOf<String?>(null) }
@@ -129,7 +129,16 @@ fun PaymentInfoScreen(
                 ) {
                     MembershipSpecSummary(plan = plan)
                     Button(
-                        onClick = onPayDone,
+                        onClick = {
+                            scope.launch {
+                                val result = onPayDone(recommendedParty?.id)
+                                helperColor = if (result.success) Color(0xFF1B873C) else Color(0xFFD32F2F)
+                                helper = result.message ?: if (result.success) "결제가 완료되었어요" else "파티 매칭에 실패했어요"
+                                if (result.success) {
+                                    inviteCode = ""
+                                }
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),

@@ -1,6 +1,5 @@
 package com.example.ottogether.feature.auth.login
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,8 +50,6 @@ fun LoginScreen(
     onFindPasswordClick: () -> Unit = {},
     onLogin: suspend (String, String) -> AuthResult = { _, _ -> AuthResult(false) },
     onLoginSuccess: () -> Unit = {},
-    // ✅ 테스트 계정 로그인 콜백 (선택 사항)
-    onLoginWithTestAccount: (suspend () -> AuthResult)? = null,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -211,41 +208,6 @@ fun LoginScreen(
                         Text("log in", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     }
 
-                    Spacer(Modifier.height(12.dp))
-
-                    onLoginWithTestAccount?.let { loginWithTestAccount ->
-                        Spacer(Modifier.height(12.dp))
-
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    val result = loginWithTestAccount()
-                                    if (result.success) {
-                                        helper = null
-                                        onLoginSuccess()
-                                    } else {
-                                        helper = result.message ?: "테스트 계정으로 로그인할 수 없어요"
-                                    }
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = BrandOrange
-                            ),
-                            border = BorderStroke(1.dp, BrandOrange)
-                        ) {
-                            Text(
-                                text = "테스트 계정으로 로그인",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = BrandOrange
-                            )
-                        }
-                    }
                 }
             }
         }
