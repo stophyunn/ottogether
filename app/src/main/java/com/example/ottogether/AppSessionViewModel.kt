@@ -108,6 +108,35 @@ class AppSessionViewModel @Inject constructor(
         }
     }
 
+    fun withdrawAccount(onComplete: (Boolean) -> Unit = {}) {
+        val user = _state.value.currentUser ?: run {
+            onComplete(false)
+            return
+        }
+        viewModelScope.launch {
+            val success = runCatching {
+                val subscriptions = repository.getMySubscriptions(user.id)
+                subscriptions.forEach { subscription ->
+                    if (subscription.ownerUserId == user.id) {
+                        repository.deleteSubscription(subscription.id)
+                    } else {
+                        repository.leaveSubscription(subscription.id, user.id)
+                    }
+                }
+                userRepository.deleteUser(user.id)
+                try {
+                    auth.currentUser?.delete()?.await()
+                } catch (_: Exception) {
+                    // ignore best-effort auth deletion failures
+                }
+                true
+            }.getOrElse { false }
+
+            logout()
+            onComplete(success)
+        }
+    }
+
     fun leaveSubscription(id: String) {
         val user = _state.value.currentUser ?: return
         viewModelScope.launch {

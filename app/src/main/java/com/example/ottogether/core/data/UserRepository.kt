@@ -8,4 +8,5 @@ interface UserRepository {
     suspend fun getUserById(id: String): User?
     suspend fun addUser(user: User)
     suspend fun updateUser(user: User)
+    suspend fun deleteUser(id: String)
 }

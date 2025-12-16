@@ -194,9 +194,10 @@ fun AppNavHost(
                     }
                 },
                 onWithdrawConfirmed = {
-                    sessionViewModel.logout()
-                    navController.navigate(Route.Login.path) {
-                        popUpTo(Route.Home.path) { inclusive = true }
+                    sessionViewModel.withdrawAccount {
+                        navController.navigate(Route.Login.path) {
+                            popUpTo(Route.Home.path) { inclusive = true }
+                        }
                     }
                 }
             )

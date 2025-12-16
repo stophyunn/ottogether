@@ -70,6 +70,15 @@ class FirebaseUserRepository @Inject constructor(
         }
     }
 
+    override suspend fun deleteUser(id: String) {
+        ensureSeedUsers()
+        try {
+            collection.document(id).delete().await()
+        } catch (e: Exception) {
+            // TODO: log exception
+        }
+    }
+
     private suspend fun ensureSeedUsers() {
         seeded.set(true)
     }
