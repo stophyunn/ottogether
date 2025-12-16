@@ -133,14 +133,28 @@ fun PaymentInfoScreen(
                     MembershipSpecSummary(plan = plan)
                     Button(
                         onClick = {
+                            if (selectedMethod == null) {
+                                alertMessage = "결제 수단을 선택해주세요"
+                                return@Button
+                            }
                             scope.launch {
                                 val result = onPayDone(recommendedParty?.id)
                                 helperColor = if (result.success) Color(0xFF1B873C) else Color(0xFFD32F2F)
-                                helper = result.message ?: if (result.success) "결제가 완료되었어요" else "파티 매칭에 실패했어요"
                                 if (result.success) {
-                                    inviteCode = ""
+                                    val willComplete = recommendedParty?.let {
+                                        (it.members.size + 1) >= it.plan.maxScreens
+                                    } ?: false
+                                    alertMessage = if (willComplete) {
+                                        "파티 매칭이 완료되었어요"
+                                    } else {
+                                        "파티원이 모두 채워지면 파티매칭이 완료돼요"
+                                    }
                                 }
-                            }
+                                helper = result.message
+                                    if (result.success) {
+                                        inviteCode = ""
+                                    }
+                                }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -468,20 +482,8 @@ private fun PaymentInfoPreview() {
             ottName = "넷플릭스",
             plan = samplePlan,
             logoRes = R.drawable.ic_logo_netflix,
-            recommendedParty = Subscription(
-                id = "preview-party",
-                provider = com.example.ottogether.core.model.Provider.NETFLIX,
-                plan = samplePlan,
-                ownerUserId = "u1",
-                members = listOf("u2", "u3"),
-                billing = com.example.ottogether.core.model.BillingInfo(),
-                pendingExits = emptyMap()
-            ),
-            users = listOf(
-                com.example.ottogether.core.model.User(id = "u1", name = "졸린 무지", profileImageRes = R.drawable.profile),
-                com.example.ottogether.core.model.User(id = "u2", name = "개졸린 무지"),
-                com.example.ottogether.core.model.User(id = "u3", name = "베짱이 무지")
-            )
+            recommendedParty = null,
+            users = emptyList()
         )
     }
 }
