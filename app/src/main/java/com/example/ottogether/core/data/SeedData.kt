@@ -193,57 +193,7 @@ class SeedData @Inject constructor() {
         )
     )
 
-    val subscriptions = listOf(
-        Subscription(
-            id = "s1",
-            provider = Provider.NETFLIX,
-            plan = plan(Provider.NETFLIX, "netflix-premium"),
-            ownerUserId = users[0].id,
-            members = listOf(
-                users[1].id,
-                users[2].id,
-                users[3].id,
-                users[4].id,
-                users[5].id
-            ),
-            billing = BillingInfo(
-                accountMasked = "국민은행 00000-0000-0000",
-                loginId = users[0].email,
-                passwordMasked = "********",
-                cycleDay = 10,
-                nextBillingDate = LocalDate.of(2025, 11, 23)
-            )
-        ),
-        Subscription(
-            id = "s2",
-            provider = Provider.DISNEY,
-            plan = plan(Provider.DISNEY, "disney-standard"),
-            ownerUserId = users[0].id,
-            members = listOf(users[1].id),
-            billing = BillingInfo(
-                accountMasked = "신한 22222-2222-2222",
-                loginId = users[0].email,
-                passwordMasked = "********",
-                cycleDay = 23,
-                nextBillingDate = LocalDate.of(2025, 11, 23)
-            )
-        ),
-        Subscription(
-            id = "s3",
-            provider = Provider.TVING,
-            plan = plan(Provider.TVING, "tving-premium"),
-            ownerUserId = users[1].id,
-            members = listOf(users[0].id, users[3].id),
-            billing = BillingInfo(
-                accountMasked = "카카오뱅크 33333-3333-3333",
-                loginId = users[1].email,
-                passwordMasked = "********",
-                cycleDay = 3,
-                nextBillingDate = LocalDate.of(2025, 12, 3)
-            ),
-            pendingExits = mapOf(users[0].id to LocalDate.now().plusDays(5))
-        )
-    )
+    val subscriptions = emptyList<Subscription>()
 
     fun catalog(provider: Provider): ProviderCatalog =
         catalogs.first { it.provider == provider }
