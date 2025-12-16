@@ -28,4 +28,8 @@ class InMemoryUserRepository @Inject constructor(seedData: SeedData) : UserRepos
             users[index] = user
         }
     }
+
+    override suspend fun deleteUser(id: String) {
+        users.removeAll { it.id == id }
+    }
 }
