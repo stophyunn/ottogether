@@ -71,16 +71,7 @@ class FirebaseUserRepository @Inject constructor(
     }
 
     private suspend fun ensureSeedUsers() {
-        if (seeded.getAndSet(true)) return
-        try {
-            val snapshot = collection.limit(1).get().await()
-            if (!snapshot.isEmpty) return
-            seedData.users.forEach { user ->
-                collection.document(user.id).set(user.toMap()).await()
-            }
-        } catch (e: Exception) {
-            // TODO: log exception
-        }
+        seeded.set(true)
     }
 
     private fun User.toMap(): Map<String, Any?> = mapOf(

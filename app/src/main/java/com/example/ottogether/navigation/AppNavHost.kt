@@ -71,7 +71,6 @@ fun AppNavHost(
                 onFindEmailClick = { navController.navigate(Route.FindEmail.path) },
                 onFindPasswordClick = { navController.navigate(Route.FindPassword.path) },
                 onLogin = sessionViewModel::loginWithCredentials,
-                onLoginWithTestAccount = sessionViewModel::loginWithTestAccount,
                 onLoginSuccess = {
                     navController.navigate(Route.Home.path) {
                         popUpTo(Route.Login.path) { inclusive = true }
@@ -286,7 +285,6 @@ fun AppNavHost(
                             account = form.account,
                             firstBillingDate = form.firstBillingDate
                         )
-                        true
                     },
                     onOpenMySubscriptions = {
                         navController.navigate(Route.MySubscriptions.path) {
@@ -316,12 +314,20 @@ fun AppNavHost(
                     users = sessionState.users,
                     onBack = { navController.popBackStack() },
                     onJoinParty = { code -> sessionViewModel.joinPartyByCode(code) },
-                    onPayDone = {
-                        sessionViewModel.refreshSubscriptions()
-                        navController.navigate(Route.Home.path) {
-                            popUpTo(Route.Home.path) { inclusive = true }
-                            launchSingleTop = true
+                    onPayDone = { partyId ->
+                        val targetPartyId = partyId ?: recommended.value.firstOrNull()?.id
+                        if (targetPartyId == null) {
+                            return@PaymentInfoScreen AuthResult(false, "매칭 가능한 파티가 없어요")
                         }
+                        val result = sessionViewModel.joinPartyByCode(targetPartyId)
+                        if (result.success) {
+                            sessionViewModel.refreshSubscriptions()
+                            navController.navigate(Route.Home.path) {
+                                popUpTo(Route.Home.path) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                        result
                     }
                 )
             }

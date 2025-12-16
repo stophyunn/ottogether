@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ottogether.R
 import com.example.ottogether.core.designsystem.AppCard
+import com.example.ottogether.core.model.AuthResult
 import com.example.ottogether.core.model.Money
 import com.example.ottogether.core.model.Plan
 import com.example.ottogether.core.ui.MembershipSpecSummary
@@ -85,7 +86,7 @@ fun ShareAccountScreen(
     plan: Plan,
     logoRes: Int,
     onBack: () -> Unit = {},
-    onRegisterPartyMatch: suspend (ShareAccountForm) -> Boolean = { true },
+    onRegisterPartyMatch: suspend (ShareAccountForm) -> AuthResult = { AuthResult(true) },
     onOpenMySubscriptions: () -> Unit = {},
 ) {
     var loginId by rememberSaveable { mutableStateOf("") }
@@ -97,6 +98,8 @@ fun ShareAccountScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var isRegistering by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var helper by rememberSaveable { mutableStateOf<String?>(null) }
+    var helperColor by remember { mutableStateOf(Color(0xFFD32F2F)) }
     val formatter = remember { DateTimeFormatter.ofPattern("MM / dd") }
     val scope = rememberCoroutineScope()
 
@@ -146,7 +149,7 @@ fun ShareAccountScreen(
                             if (isRegistering) return@Button
                             scope.launch {
                                 isRegistering = true
-                                val success = onRegisterPartyMatch(
+                                val result = onRegisterPartyMatch(
                                     ShareAccountForm(
                                         loginId = loginId,
                                         password = password,
@@ -155,8 +158,13 @@ fun ShareAccountScreen(
                                     )
                                 )
                                 isRegistering = false
-                                if (success) {
+                                if (result.success) {
+                                    helper = null
+                                    helperColor = Color(0xFF1B873C)
                                     showSuccessDialog = true
+                                } else {
+                                    helperColor = Color(0xFFD32F2F)
+                                    helper = result.message ?: "파티 등록에 실패했어요"
                                 }
                             }
                         },
@@ -176,10 +184,14 @@ fun ShareAccountScreen(
                             fontSize = 18.sp   // ✅ 폰트 크기 추가
                         )
                     }
+                    helper?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(it, color = helperColor, fontSize = 12.sp)
+                    }
+                    }
                 }
             }
-        }
-    ) { inner ->
+        ) { inner ->
         val scroll = rememberScrollState()
         Column(
             modifier = Modifier
