@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
@@ -86,6 +87,8 @@ fun PaymentInfoScreen(
     var inviteCode by rememberSaveable { mutableStateOf("") }
     var helper by rememberSaveable { mutableStateOf<String?>(null) }
     var helperColor by remember { mutableStateOf(Color(0xFFD32F2F)) }
+    var selectedMethod by rememberSaveable { mutableStateOf<String?>(null) }
+    var alertMessage by rememberSaveable { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val userMap = remember(users) { users.associateBy { it.id } }
     val recommendedUsers = remember(recommendedParty, users) {
@@ -144,7 +147,8 @@ fun PaymentInfoScreen(
                             .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Orange, contentColor = Color.White
+                            containerColor = selectedMethod?.let { Orange } ?: Color(0xFFCFD3DB),
+                            contentColor = Color.White
                         )
                     ) {
                         Text("결제완료", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -213,13 +217,36 @@ fun PaymentInfoScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    MethodChip(text = "체크/신용카드", modifier = Modifier.weight(1f))
-                    MethodChip(text = "계좌이체", modifier = Modifier.weight(1f))
+                    MethodChip(
+                        text = "체크/신용카드",
+                        selected = selectedMethod == "카드",
+                        onClick = { selectedMethod = "카드" },
+                        modifier = Modifier.weight(1f)
+                    )
+                    MethodChip(
+                        text = "계좌이체",
+                        selected = selectedMethod == "계좌이체",
+                        onClick = { selectedMethod = "계좌이체" },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
             Spacer(Modifier.height(8.dp)) // bottomBar와의 여유
         }
+    }
+
+    alertMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { alertMessage = null },
+            confirmButton = {
+                TextButton(onClick = { alertMessage = null }) {
+                    Text("확인", color = Orange, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = { Text(message, fontWeight = FontWeight.SemiBold) },
+            containerColor = Color.White
+        )
     }
 }
 
@@ -395,20 +422,30 @@ private fun DatePanel(
 }
 
 @Composable
-private fun MethodChip(text: String, modifier: Modifier = Modifier) {
+private fun MethodChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Surface(
         modifier = modifier,
-        color = Color.White,
+        color = if (selected) Orange.copy(alpha = 0.15f) else Color.White,
         shadowElevation = 1.dp,
         shape = RoundedCornerShape(16.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable { onClick() }
                 .padding(vertical = 18.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(text, fontWeight = FontWeight.SemiBold)
+            Text(
+                text,
+                fontWeight = FontWeight.SemiBold,
+                color = if (selected) Orange else Color.Unspecified
+            )
         }
     }
 }
