@@ -285,7 +285,6 @@ fun AppNavHost(
                             account = form.account,
                             firstBillingDate = form.firstBillingDate
                         )
-                        true
                     },
                     onOpenMySubscriptions = {
                         navController.navigate(Route.MySubscriptions.path) {

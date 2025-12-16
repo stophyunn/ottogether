@@ -191,19 +191,24 @@ class AppSessionViewModel @Inject constructor(
         password: String,
         account: String,
         firstBillingDate: LocalDate
-    ) {
-        val user = _state.value.currentUser ?: return
-        repository.createHostedSubscription(
-            ownerId = user.id,
-            provider = provider,
-            plan = plan,
-            accountMasked = account.takeIf { it.isNotBlank() },
-            loginId = loginId.takeIf { it.isNotBlank() },
-            passwordMasked = password.takeIf { it.isNotBlank() },
-            firstBillingDate = firstBillingDate
-        )
-        val updated = repository.getMySubscriptions(user.id)
-        _state.update { it.copy(subscriptions = updated) }
+    ): AuthResult {
+        val user = _state.value.currentUser ?: return AuthResult(false, "로그인이 필요해요")
+        return try {
+            repository.createHostedSubscription(
+                ownerId = user.id,
+                provider = provider,
+                plan = plan,
+                accountMasked = account.takeIf { it.isNotBlank() },
+                loginId = loginId.takeIf { it.isNotBlank() },
+                passwordMasked = password.takeIf { it.isNotBlank() },
+                firstBillingDate = firstBillingDate
+            )
+            val updated = repository.getMySubscriptions(user.id)
+            _state.update { it.copy(subscriptions = updated) }
+            AuthResult(true, "파티 등록을 완료했어요")
+        } catch (e: Exception) {
+            AuthResult(false, e.localizedMessage ?: "파티를 등록하지 못했어요")
+        }
     }
 
     fun attachSubscription(subscription: Subscription) {
@@ -281,12 +286,16 @@ class AppSessionViewModel @Inject constructor(
         if (trimmed.isBlank()) {
             return AuthResult(success = false, message = "파티방 주소를 입력해주세요")
         }
-        val normalized = normalizeInviteCode(trimmed)
-        val result = repository.joinPartyByCode(normalized, user.id)
-            ?: return AuthResult(false, "유효하지 않은 주소이거나 이미 참여했어요")
-        val updatedSubs = repository.getMySubscriptions(user.id)
-        _state.update { it.copy(subscriptions = updatedSubs) }
-        return AuthResult(true, "파티에 참여했어요!")
+        return try {
+            val normalized = normalizeInviteCode(trimmed)
+            val result = repository.joinPartyByCode(normalized, user.id)
+                ?: return AuthResult(false, "유효하지 않은 주소이거나 이미 참여했어요")
+            val updatedSubs = repository.getMySubscriptions(user.id)
+            _state.update { it.copy(subscriptions = updatedSubs) }
+            AuthResult(true, "파티에 참여했어요!")
+        } catch (e: Exception) {
+            AuthResult(false, e.localizedMessage ?: "파티에 참여하지 못했어요")
+        }
     }
 
     suspend fun transferOwnership(subscriptionId: String, newOwnerId: String): AuthResult {
