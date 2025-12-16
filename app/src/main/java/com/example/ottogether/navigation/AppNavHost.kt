@@ -71,7 +71,6 @@ fun AppNavHost(
                 onFindEmailClick = { navController.navigate(Route.FindEmail.path) },
                 onFindPasswordClick = { navController.navigate(Route.FindPassword.path) },
                 onLogin = sessionViewModel::loginWithCredentials,
-                onLoginWithTestAccount = sessionViewModel::loginWithTestAccount,
                 onLoginSuccess = {
                     navController.navigate(Route.Home.path) {
                         popUpTo(Route.Login.path) { inclusive = true }

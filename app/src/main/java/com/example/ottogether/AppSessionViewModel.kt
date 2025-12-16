@@ -13,7 +13,6 @@ import com.example.ottogether.core.model.Provider
 import com.example.ottogether.core.model.Subscription
 import com.example.ottogether.core.model.User
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
@@ -65,46 +64,6 @@ class AppSessionViewModel @Inject constructor(
         } catch (e: Exception) {
             AuthResult(success = false, message = e.localizedMessage ?: "로그인에 실패했어요")
         }
-    }
-
-    suspend fun loginWithTestAccount(): AuthResult {
-        val seedUser = seedData.users.firstOrNull()
-        val email = seedUser?.email ?: "test@ottogether.app"
-        val password = seedUser?.password ?: "password1"
-        return try {
-            val methods = auth.fetchSignInMethodsForEmail(email).await()
-            if (methods.signInMethods.isNullOrEmpty()) {
-                try {
-                    auth.createUserWithEmailAndPassword(email, password).await()
-                } catch (collision: FirebaseAuthUserCollisionException) {
-                    // Account already exists: fall back to sign-in below
-                }
-            }
-            val result = auth.signInWithEmailAndPassword(email, password).await()
-            val firebaseUser = result.user ?: return AuthResult(false, "테스트 계정을 찾을 수 없어요")
-            val profile = ensureUserProfile(firebaseUser, fallbackName = seedUser?.name)
-                ?: return AuthResult(false, "프로필을 만들 수 없어요")
-            setLoggedInUser(profile)
-            AuthResult(true, "테스트 계정으로 로그인했어요")
-        } catch (e: Exception) {
-            if (e.message?.contains("CONFIGURATION_NOT_FOUND", ignoreCase = true) == true) {
-                return loginWithSeedDataFallback(seedUser)
-            }
-            AuthResult(false, "테스트 계정 로그인 실패: ${e.message}")
-        }
-    }
-
-    private suspend fun loginWithSeedDataFallback(seedUser: User?): AuthResult {
-        val fallbackUser = seedUser ?: User(
-            id = "seed-test-user",
-            name = "테스트 사용자",
-            email = null,
-            phone = null,
-            profileImageRes = profileImages.firstOrNull(),
-            password = null
-        )
-        setLoggedInUserFromSeed(fallbackUser)
-        return AuthResult(true, "테스트 계정을 로컬 데이터로 불러왔어요")
     }
 
     suspend fun registerUser(name: String, email: String, password: String, phone: String?): AuthResult {
@@ -362,25 +321,6 @@ class AppSessionViewModel @Inject constructor(
                 currentUser = user,
                 subscriptions = subs,
                 selectedCalendarDate = subs.minByOrNull { sub -> sub.billing.nextBillingDate }
-                    ?.billing?.nextBillingDate ?: LocalDate.now()
-            )
-        }
-    }
-
-    private fun setLoggedInUserFromSeed(user: User) {
-        val subscriptions = seedData.subscriptions.filter { subscription ->
-            subscription.ownerUserId == user.id || user.id in subscription.members
-        }
-        val users = seedData.users.let { existing ->
-            if (existing.any { it.id == user.id }) existing else existing + user
-        }
-        _state.update {
-            it.copy(
-                isLoading = false,
-                currentUser = user,
-                users = users,
-                subscriptions = subscriptions,
-                selectedCalendarDate = subscriptions.minByOrNull { sub -> sub.billing.nextBillingDate }
                     ?.billing?.nextBillingDate ?: LocalDate.now()
             )
         }
